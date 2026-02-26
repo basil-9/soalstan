@@ -7,21 +7,25 @@
         :root { --bg-blue: #1e40af; --gold: #facc15; --gold-dark: #ca8a04; }
         body { font-family: 'Segoe UI', Tahoma, sans-serif; text-align: center; background: radial-gradient(circle, #1e40af 0%, #1e3a8a 100%); margin: 0; min-height: 100vh; color: white; overflow-x: hidden; }
         
+        /* الشاشات */
         .screen { display: none; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; box-sizing: border-box; }
         .active-screen { display: flex; }
 
+        /* الكارد الرئيسي */
         .card { background: white; padding: 30px; border-radius: 25px; display: inline-block; width: 95%; max-width: 650px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); color: #333; }
         
         .header { display: flex; justify-content: space-between; margin-bottom: 25px; font-weight: bold; font-size: 20px; }
         
+        /* أزرار كلك */
         .btn-main { background: var(--gold); color: #000; padding: 15px 40px; font-size: 22px; font-weight: bold; border: 4px solid #000; border-radius: 12px; cursor: pointer; box-shadow: 0 8px 0 var(--gold-dark); transition: 0.1s; margin: 10px; }
         .btn-main:active { transform: translateY(4px); box-shadow: 0 4px 0 var(--gold-dark); }
 
         .teams-container { display: flex; gap: 20px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
         .team-card { background: #f8fafc; color: #000; padding: 20px; border: 5px solid #000; border-radius: 20px; cursor: pointer; transition: 0.3s; width: 140px; }
-        
+
         .auction-box { background: #fffbeb; border: 2px solid #fbbf24; padding: 20px; border-radius: 15px; margin: 20px 0; min-height: 100px; }
-        .opt-btn { padding: 18px; font-size: 18px; background: #2563eb; color: white; border: none; border-radius: 12px; cursor: pointer; margin: 5px; width: 100%; }
+        .opt-btn { padding: 18px; font-size: 18px; background: #2563eb; color: white; border: none; border-radius: 12px; cursor: pointer; margin: 5px; width: 100%; transition: 0.2s; }
+        .opt-btn:hover { background: #1e40af; }
         .bid-btn { background: #dc2626; color: white; border: none; padding: 12px 20px; margin: 5px; border-radius: 8px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
@@ -48,49 +52,47 @@
         </div>
 
         <div id="level-selector">
-            <p>اختر مستوى الصعوبة:</p>
-            <button class="btn-main" style="font-size:16px;" onclick="requestNewAuction('easy')">سهل</button>
-            <button class="btn-main" style="font-size:16px;" onclick="requestNewAuction('medium')">متوسط</button>
-            <button class="btn-main" style="font-size:16px;" onclick="requestNewAuction('hard')">صعب</button>
+            <p>اختر مستوى الصعوبة لبدء المزاد:</p>
+            <button class="btn-main" style="font-size:16px; padding:10px;" onclick="requestNewAuction('easy')">سهل</button>
+            <button class="btn-main" style="font-size:16px; padding:10px;" onclick="requestNewAuction('medium')">متوسط</button>
+            <button class="btn-main" style="font-size:16px; padding:10px;" onclick="requestNewAuction('hard')">صعب</button>
         </div>
 
         <div class="auction-box">
             <h3 id="hint-label">بانتظار اختيار المستوى...</h3>
             <div id="bid-ui" style="display:none;">
-                <p>المزاد: <mark id="high-bid">0</mark> بواسطة <span id="high-team">-</span></p>
-                <button class="bid-btn" onclick="bid(10)">+10</button>
-                <button class="bid-btn" onclick="bid(20)">+20</button>
-                <button onclick="win()" style="background:#000; color:#fff; border:none; padding:10px; border-radius:8px; cursor:pointer;">إرساء المزاد 🏁</button>
+                <p style="font-size: 1.2em;">المزاد الحالي: <mark id="high-bid">0</mark> بواسطة <span id="high-team">-</span></p>
+                <button class="bid-btn" onclick="bid(10)">+10 نقاط</button>
+                <button class="bid-btn" onclick="bid(20)">+20 نقطة</button>
+                <button onclick="win()" style="background:#000; color:#fff; border:none; padding:12px; border-radius:8px; cursor:pointer; font-weight:bold;">إرساء المزاد 🏁</button>
             </div>
         </div>
 
         <div id="game-play" style="display:none;">
-            <h2 id="question-text"></h2>
-            <div id="options-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
+            <h2 id="question-text" style="color: #1e40af;"></h2>
+            <div id="options-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;"></div>
         </div>
         
-        <div id="result-msg" style="margin-top:20px; font-size:20px; font-weight:bold;"></div>
+        <div id="result-msg" style="margin-top:20px; font-size:22px; font-weight:bold;"></div>
     </div>
 </div>
 
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-
+<script src="/socket.io/socket.io.js"></script>
 <script>
-    // ربط مباشر برابط السيرفر الخاص بك على Render
-    const socket = io("https://soalstan-game.onrender.com");
+    const socket = io(); // الربط التلقائي بالسيرفر الحالي
 
-    let myTeam, myName, currentQ, currentBid = 0;
+    let myTeam, myName, currentQ, currentBid = 0, currentLevel;
 
     function joinGame(teamLetter) {
         const nameInput = document.getElementById('player-name').value.trim();
-        if (!nameInput) { alert("أدخل اسمك أولاً!"); return; }
+        if (!nameInput) { alert("أدخل اسمك أولاً يا بطل!"); return; }
         
         myName = nameInput;
         myTeam = teamLetter;
         
         document.getElementById('welcome-msg').innerText = `البطل ${myName} (فريق ${myTeam})`;
         
-        // الانتقال القسري بين الشاشات
+        // الانتقال الفوري للشاشة التالية
         document.getElementById('join-screen').style.display = 'none';
         document.getElementById('main-game-screen').style.display = 'flex';
         
@@ -98,6 +100,7 @@
     }
 
     function requestNewAuction(level) {
+        currentLevel = level;
         socket.emit('requestAuction', { level: level });
     }
 
@@ -123,7 +126,7 @@
     });
 
     function win() { 
-        socket.emit('winAuction', { question: currentQ }); 
+        socket.emit('winAuction', { question: currentQ, level: currentLevel }); 
     }
 
     socket.on('revealQuestion', data => {
@@ -138,14 +141,19 @@
             btn.className = 'opt-btn';
             btn.innerText = opt;
             btn.onclick = () => {
-                socket.emit('submitAnswer', { team: myTeam, answer: opt, correct: data.question.a, name: myName });
+                socket.emit('submitAnswer', { 
+                    team: myTeam, 
+                    answer: opt, 
+                    correct: data.question.a, 
+                    name: myName 
+                });
             };
             container.appendChild(btn);
         });
     });
 
     socket.on('roundResult', data => {
-        const status = data.isCorrect ? "✅ صح!" : "❌ خطأ!";
+        const status = data.isCorrect ? "أحسنت! إجابة صحيحة ✅" : "للأسف! إجابة خاطئة ❌";
         document.getElementById('result-msg').innerText = `${data.playerName}: ${status}`;
         document.getElementById(`pts-${data.team}`).innerText = data.points;
         document.getElementById('game-play').style.display = "none";
