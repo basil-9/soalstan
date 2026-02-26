@@ -1,15 +1,17 @@
 {
-  "name": "soalstan-game",
+  "name": "gitignore",
   "version": "1.0.0",
-  "description": "لعبة مزاد أسئلة سؤالستان 2026 - باسل ",
-  "main": "server.js",
+  "description": "",
+  "main": "index.js",
   "scripts": {
-    "start": "node server.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
   "dependencies": {
-    "express": "^4.18.2",
-    "socket.io": "^4.7.2"
-  },
-  "author": "Basil ",
-  "license": "ISC"
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3"
+  }
 }
