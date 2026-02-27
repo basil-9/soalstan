@@ -14,6 +14,7 @@ let questionBank = [];
 try {
     const data = fs.readFileSync(path.join(__dirname, 'questions.json'), 'utf8');
     questionBank = JSON.parse(data);
+    console.log(`✅ تم تحميل ${questionBank.length} سؤال`);
 } catch (err) { console.error("❌ خطأ في الأسئلة:", err); }
 
 let roomsData = {};
@@ -24,17 +25,17 @@ io.on('connection', (socket) => {
         socket.join(roomID);
         socket.currentRoom = roomID;
         socket.playerName = name;
+        socket.playerTeam = team;
 
         if (!roomsData[roomID]) {
             roomsData[roomID] = {
                 teams: { 'أ': { points: 100 }, 'ب': { points: 100 } },
                 usedQuestions: [],
-                adminID: socket.id // تعيين أول لاعب يدخل كمشرف
+                adminID: socket.id // أول لاعب يدخل هو المشرف
             };
         }
 
         const room = roomsData[roomID];
-        // إبلاغ اللاعب هل هو مشرف أم لا
         socket.emit('init', { 
             pointsA: room.teams['أ'].points, 
             pointsB: room.teams['ب'].points,
@@ -44,7 +45,7 @@ io.on('connection', (socket) => {
 
     socket.on('requestAuction', (data) => {
         const roomID = socket.currentRoom;
-        if (socket.id !== roomsData[roomID].adminID) return; // منع غير المشرف من الطلب
+        if (!roomID || socket.id !== roomsData[roomID].adminID) return;
 
         const available = questionBank.filter(q => !roomsData[roomID].usedQuestions.includes(q.q));
         const q = available.length > 0 
@@ -55,11 +56,15 @@ io.on('connection', (socket) => {
         io.to(roomID).emit('startAuction', { hint: q.hint, fullQuestion: q, level: data.level });
     });
 
-    socket.on('placeBid', (data) => io.to(socket.currentRoom).emit('updateBid', data));
+    socket.on('placeBid', (data) => {
+        io.to(socket.currentRoom).emit('updateBid', data);
+    });
+
     socket.on('winAuction', (data) => {
-        if (socket.id !== roomsData[socket.currentRoom].adminID) return; // المشرف فقط ينهي المزاد
+        const roomID = socket.currentRoom;
+        if (socket.id !== roomsData[roomID].adminID) return;
         let duration = data.level === 'easy' ? 20 : (data.level === 'hard' ? 10 : 15);
-        io.to(socket.currentRoom).emit('revealQuestion', { question: data.question, duration });
+        io.to(roomID).emit('revealQuestion', { question: data.question, duration });
     });
 
     socket.on('submitAnswer', (data) => {
@@ -72,11 +77,8 @@ io.on('connection', (socket) => {
             });
         }
     });
-
-    socket.on('disconnect', () => {
-        // إذا خرج المشرف، يمكن إضافة منطق لنقل السلطة للاعب آخر هنا
-    });
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`🚀 السيرفر يعمل بمنطق المشرف على ${PORT}`));
+
