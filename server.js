@@ -14,8 +14,7 @@ let questionBank = [];
 try {
     const data = fs.readFileSync(path.join(__dirname, 'questions.json'), 'utf8');
     questionBank = JSON.parse(data);
-    console.log(`✅ تم تحميل ${questionBank.length} سؤال`);
-} catch (err) { console.error("❌ خطأ في الأسئلة:", err); }
+} catch (err) { console.error("❌ خطأ في ملف الأسئلة:", err); }
 
 let roomsData = {};
 
@@ -31,7 +30,7 @@ io.on('connection', (socket) => {
             roomsData[roomID] = {
                 teams: { 'أ': { points: 100 }, 'ب': { points: 100 } },
                 usedQuestions: [],
-                adminID: socket.id // أول لاعب يدخل هو المشرف
+                adminID: socket.id 
             };
         }
 
@@ -80,5 +79,5 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`🚀 السيرفر يعمل بمنطق المشرف على ${PORT}`));
+server.listen(PORT, () => console.log(`🚀 السيرفر يعمل على منفذ ${PORT}`));
 
