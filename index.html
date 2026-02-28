@@ -106,7 +106,7 @@
 
         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 10px;">
             <div id="leader-tag" style="display:none; color: var(--gold); font-weight: bold; font-size: 12px;">👑 قائد</div>
-            <div onclick="copyRoomCode()" style="font-size: 12px; cursor: pointer; color: #cbd5e1;"><span id="display-room-id">---</span> 📋</div>
+            <div onclick="copyRoomCode()" style="font-size: 12px; cursor: pointer;"><span id="display-room-id">---</span> 📋</div>
         </div>
 
         <div id="win-screen" class="animate__animated zoomIn">
@@ -121,7 +121,7 @@
             <div id="bid-ui" style="display:none; margin-top: 10px;">
                 <p>المزاد: <span id="current-bid">0</span></p>
                 <button class="btn-game" onclick="bid()">زايد +10 🔨</button>
-                <button id="win-btn" class="btn-game" style="display:none; background:white; color:black;" onclick="socket.emit('winAuction', {question:currentQ})">إرسال المزايدة ✅</button>
+                <button id="win-btn" class="btn-game" style="display:none; background:white; color:black;" onclick="socket.emit('winAuction', {question:currentQ, winningTeam: myInfo.team})">إرسال المزايدة ✅</button>
             </div>
         </div>
 
@@ -143,7 +143,8 @@
     function playSnd(s) { sounds[s].play().catch(()=>{}); }
 
     const socket = io();
-    let myInfo = {}, isLeader = false, currentQ = {}, timerInt, roomSettings = {};
+    // تمت إضافة currentWinner لمعرفة الفريق صاحب الدور الحالي
+    let myInfo = {}, isLeader = false, currentQ = {}, timerInt, roomSettings = {}, currentWinner = "";
 
     // دالة تحديث ساعة الوقت الفعلي
     function updateClock() {
@@ -213,9 +214,9 @@
     socket.on('updateBid', d => { playSnd('bid'); document.getElementById('current-bid').innerText = d.amount; if(isLeader) document.getElementById('win-btn').style.display = 'inline-block'; });
 
     socket.on('revealQuestion', d => {
+        currentWinner = d.winningTeam; // تسجيل الفريق الذي عليه الدور الآن
         const content = document.getElementById('q-content'); content.innerHTML = '';
         
-        // 🔥 التعديل الحاسم هنا: تغيير image إلى img ليطابق ملف الأسئلة שלך 🔥
         if (d.question.img) content.innerHTML += `<img src="${d.question.img}" class="q-image">`;
         
         content.innerHTML += `<h1 style="font-size: 24px; color: var(--main); margin: 0;">${d.question.q}</h1>`;
@@ -229,7 +230,14 @@
         const opts = document.getElementById('options'); opts.innerHTML = '';
         options.forEach(o => {
             const b = document.createElement('button'); b.className = 'btn-game'; b.innerText = o;
-            if(!isLeader) b.disabled = true;
+            
+            // قفل الزر إذا لم تكن القائد، أو إذا كان الدور للفريق الخصم
+            if(!isLeader || myInfo.team !== currentWinner) {
+                b.disabled = true;
+                b.style.opacity = "0.5";
+                b.style.cursor = "not-allowed";
+            }
+            
             b.onclick = () => { playSnd('click'); socket.emit('submitAnswer', { team: myInfo.team, answer: o, name: myInfo.name }); clearInterval(timerInt); };
             opts.appendChild(b);
         });
@@ -238,26 +246,46 @@
     function startTimer() {
         document.getElementById('timer-container').style.display = 'block';
         let timeLeft = 100; let step = 100 / (roomSettings.roundTime * 10);
-        timerInt = setInterval(() => { timeLeft -= step; document.getElementById('timer-bar').style.width = timeLeft + '%'; if(timeLeft <= 0) clearInterval(timerInt); }, 100);
+        timerInt = setInterval(() => { 
+            timeLeft -= step; 
+            document.getElementById('timer-bar').style.width = timeLeft + '%'; 
+            if(timeLeft <= 0) {
+                clearInterval(timerInt); 
+                document.getElementById('options').innerHTML = '<h3 style="color:var(--red);">انتهى الوقت! ⏳</h3>';
+                // إذا انتهى الوقت وكان دور فريقي، أرسل إجابة خاطئة فوراً
+                if(isLeader && myInfo.team === currentWinner) {
+                    socket.emit('submitAnswer', { team: myInfo.team, answer: "TIMEOUT", name: myInfo.name });
+                }
+            } 
+        }, 100);
     }
 
     socket.on('passTurn', d => {
         playSnd('wrong');
+        currentWinner = d.toTeam; // نقل الدور رسمياً للفريق الخصم
+        
         const ov = document.getElementById('result-overlay');
         ov.className = 'animate__animated shakeX'; ov.style.display = 'block'; 
         ov.style.borderColor = 'var(--red)'; ov.style.color = 'var(--red)';
         document.getElementById('result-status').innerText = "خطأ! ❌";
         document.getElementById('result-detail').innerText = `انتقلت الفرصة لفريق ${d.toTeam} مع حذف خيار!`;
+        
         setTimeout(() => {
             ov.style.display = 'none';
-            if (myInfo.team === d.toTeam) { renderOptions(d.newOptions); startTimer(); }
-            else document.getElementById('options').innerHTML = '<h4>دور الفريق الخصم حالياً...</h4>';
+            if (myInfo.team === d.toTeam) { 
+                renderOptions(d.newOptions); 
+                startTimer(); 
+            } else { 
+                document.getElementById('options').innerHTML = '<h4 style="color:var(--gold);">دور الفريق الخصم حالياً...</h4>'; 
+                startTimer(); 
+            }
         }, 2500);
     });
 
     socket.on('roundResult', d => {
         const ov = document.getElementById('result-overlay');
         document.getElementById('timer-container').style.display = 'none';
+        clearInterval(timerInt);
         ov.className = d.isCorrect ? 'animate__animated zoomIn' : 'animate__animated shakeX';
         ov.style.display = 'block'; ov.style.borderColor = d.isCorrect ? 'var(--green)' : 'var(--red)';
         ov.style.color = d.isCorrect ? 'var(--green)' : 'var(--red)';
