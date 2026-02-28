@@ -10,12 +10,11 @@ const io = new Server(server, { cors: { origin: "*" } });
 
 app.use(express.static(__dirname)); 
 
-// التأكد من تحميل الأسئلة
 let questionBank = [];
 try {
     const data = fs.readFileSync(path.join(__dirname, 'questions.json'), 'utf8');
     questionBank = JSON.parse(data);
-} catch (err) { console.error("❌ خطأ في ملف الأسئلة"); }
+} catch (err) { console.error("❌ خطأ في تحميل الأسئلة"); }
 
 let roomsData = {};
 
@@ -31,8 +30,7 @@ io.on('connection', (socket) => {
                     'أ': { points: 100, leader: socket.id }, 
                     'ب': { points: 100, leader: null } 
                 },
-                usedQuestions: [],
-                isSuddenDeath: false
+                usedQuestions: [], isSuddenDeath: false
             };
         } else if (!roomsData[roomID].teams[team].leader) {
             roomsData[roomID].teams[team].leader = socket.id;
@@ -48,6 +46,7 @@ io.on('connection', (socket) => {
 
     socket.on('requestAuction', () => {
         const room = roomsData[socket.currentRoom];
+        if (!room) return;
         if (room.teams['أ'].points > 500 || room.teams['ب'].points > 500) room.isSuddenDeath = true;
         
         const available = questionBank.filter(q => !room.usedQuestions.includes(q.q));
@@ -73,6 +72,7 @@ io.on('connection', (socket) => {
 });
 
 server.listen(process.env.PORT || 3000);
+
 
 
 
