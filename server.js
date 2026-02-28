@@ -10,7 +10,11 @@ const io = new Server(server, { cors: { origin: "*" } });
 
 app.use(express.static(__dirname)); 
 
-let questionBank = JSON.parse(fs.readFileSync(path.join(__dirname, 'questions.json'), 'utf8'));
+let questionBank = [];
+try {
+    questionBank = JSON.parse(fs.readFileSync(path.join(__dirname, 'questions.json'), 'utf8'));
+} catch (err) { console.error("❌ ملف الأسئلة مفقود"); }
+
 let roomsData = {};
 
 io.on('connection', (socket) => {
@@ -22,21 +26,18 @@ io.on('connection', (socket) => {
             roomsData[roomID] = {
                 teams: { 'أ': { points: 100, leader: socket.id }, 'ب': { points: 100, leader: null } },
                 settings: settings || { roundTime: 30, maxRounds: 10 },
-                currentQuestion: null,
-                turnTaken: false
+                currentQuestion: null, turnTaken: false
             };
         } else if (!roomsData[roomID].teams[team].leader) {
             roomsData[roomID].teams[team].leader = socket.id;
         }
-        const room = roomsData[roomID];
-        socket.emit('init', { pointsA: room.teams['أ'].points, pointsB: room.teams['ب'].points, isLeader: socket.id === room.teams[team].leader, settings: room.settings });
+        socket.emit('init', { pointsA: roomsData[roomID].teams['أ'].points, pointsB: roomsData[roomID].teams['ب'].points, isLeader: socket.id === roomsData[roomID].teams[team].leader, settings: roomsData[roomID].settings });
     });
 
     socket.on('requestAuction', () => {
         const room = roomsData[socket.currentRoom];
         const q = questionBank[Math.floor(Math.random() * questionBank.length)];
-        room.currentQuestion = q;
-        room.turnTaken = false;
+        room.currentQuestion = q; room.turnTaken = false;
         io.to(socket.currentRoom).emit('startAuction', { hint: q.hint, fullQuestion: q });
     });
 
@@ -50,9 +51,9 @@ io.on('connection', (socket) => {
             room.teams[data.team].points -= 30;
             if (!room.turnTaken) {
                 room.turnTaken = true;
-                const wrongOptions = room.currentQuestion.options.filter(o => o !== room.currentQuestion.a);
-                const newOptions = [room.currentQuestion.a, wrongOptions[0], wrongOptions[1]].sort(() => Math.random() - 0.5);
-                io.to(socket.currentRoom).emit('passTurn', { toTeam: data.team === 'أ' ? 'ب' : 'أ', newOptions: newOptions, points: room.teams[data.team].points });
+                const wrong = room.currentQuestion.options.filter(o => o !== room.currentQuestion.a);
+                const newOptions = [room.currentQuestion.a, wrong[0], wrong[1]].sort(() => Math.random() - 0.5);
+                io.to(socket.currentRoom).emit('passTurn', { toTeam: data.team === 'أ' ? 'ب' : 'أ', newOptions, points: room.teams[data.team].points });
             } else {
                 io.to(socket.currentRoom).emit('roundResult', { isCorrect: false, team: data.team, points: room.teams[data.team].points, name: data.name, correctAns: room.currentQuestion.a });
             }
@@ -63,6 +64,7 @@ io.on('connection', (socket) => {
     socket.on('placeBid', (d) => io.to(socket.currentRoom).emit('updateBid', d));
 });
 server.listen(process.env.PORT || 3000);
+
 
 
 
