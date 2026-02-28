@@ -15,21 +15,36 @@ let roomsData = {};
 
 io.on('connection', (socket) => {
     socket.on('joinRoom', (data) => {
-        const { roomID, name, team } = data;
+        const { roomID, name, team, settings } = data;
         socket.join(roomID);
         socket.currentRoom = roomID;
+        
         if (!roomsData[roomID]) {
-            roomsData[roomID] = { teams: { 'أ': { points: 100, leader: socket.id }, 'ب': { points: 100, leader: null } }, usedQuestions: [] };
+            roomsData[roomID] = {
+                teams: { 'أ': { points: 100, leader: socket.id }, 'ب': { points: 100, leader: null } },
+                usedQuestions: [],
+                settings: settings || { roundTime: 30, maxRounds: 10 },
+                currentRound: 0
+            };
         } else if (!roomsData[roomID].teams[team].leader) {
             roomsData[roomID].teams[team].leader = socket.id;
         }
-        socket.emit('init', { pointsA: roomsData[roomID].teams['أ'].points, pointsB: roomsData[roomID].teams['ب'].points, isLeader: socket.id === roomsData[roomID].teams[team].leader });
+
+        const room = roomsData[roomID];
+        socket.emit('init', { 
+            pointsA: room.teams['أ'].points, 
+            pointsB: room.teams['ب'].points,
+            isLeader: socket.id === room.teams[team].leader,
+            settings: room.settings
+        });
     });
 
     socket.on('requestAuction', () => {
         const room = roomsData[socket.currentRoom];
+        if (!room) return;
+        room.currentRound++;
         const q = questionBank[Math.floor(Math.random() * questionBank.length)];
-        io.to(socket.currentRoom).emit('startAuction', { hint: q.hint, fullQuestion: q });
+        io.to(socket.currentRoom).emit('startAuction', { hint: q.hint, fullQuestion: q, roundNum: room.currentRound });
     });
 
     socket.on('submitAnswer', (data) => {
