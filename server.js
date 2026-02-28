@@ -6,11 +6,19 @@ const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, { cors: { origin: "*" } });
 
 app.use(express.static(__dirname)); 
 
-let questionBank = JSON.parse(fs.readFileSync(path.join(__dirname, 'questions.json'), 'utf8'));
+// قراءة الأسئلة وضمان أنها تعمل
+let questionBank = [];
+try {
+    const data = fs.readFileSync(path.join(__dirname, 'questions.json'), 'utf8');
+    questionBank = JSON.parse(data);
+    console.log(`✅ تم تحميل ${questionBank.length} سؤال بنجاح!`);
+} catch (err) { console.error("❌ خطأ في ملف الأسئلة:", err); }
+
+// تخزين بيانات الغرف
 let roomsData = {};
 
 io.on('connection', (socket) => {
@@ -18,61 +26,80 @@ io.on('connection', (socket) => {
         const { roomID, name, team } = data;
         socket.join(roomID);
         socket.currentRoom = roomID;
+        
+        // إنشاء الغرفة إذا لم تكن موجودة وتعيين المشرف
         if (!roomsData[roomID]) {
-            roomsData[roomID] = { 
-                teams: { 'أ': { points: 100, combo: 0 }, 'ب': { points: 100, combo: 0 } }, 
-                adminID: socket.id, 
-                frozenTeam: null 
+            roomsData[roomID] = {
+                teams: { 'أ': { points: 100 }, 'ب': { points: 100 } },
+                usedQuestions: [],
+                adminID: socket.id,
+                timer: null
             };
         }
-        socket.emit('init', { pointsA: roomsData[roomID].teams['أ'].points, pointsB: roomsData[roomID].teams['ب'].points, isAdmin: socket.id === roomsData[roomID].adminID });
+
+        const room = roomsData[roomID];
+        // إبلاغ اللاعب بحالة النقاط وإذا كان مشرفاً
+        socket.emit('init', { 
+            pointsA: room.teams['أ'].points, 
+            pointsB: room.teams['ب'].points,
+            isAdmin: socket.id === room.adminID 
+        });
     });
 
     socket.on('requestAuction', (data) => {
-        const room = roomsData[socket.currentRoom];
-        const q = questionBank[Math.floor(Math.random() * questionBank.length)];
-        // فرصة 20% لظهور بطاقة قوة مع السؤال
-        const powerUp = Math.random() > 0.8 ? (Math.random() > 0.5 ? 'steal' : 'freeze') : null;
-        io.to(socket.currentRoom).emit('startAuction', { hint: q.hint, fullQuestion: q, level: data.level, powerUp });
+        const roomID = socket.currentRoom;
+        if (!roomID || !roomsData[roomID]) return;
+
+        // منع غير المشرف من الطلب
+        if (socket.id !== roomsData[roomID].adminID) return;
+
+        const available = questionBank.filter(q => !roomsData[roomID].usedQuestions.includes(q.q));
+        const q = available.length > 0 
+            ? available[Math.floor(Math.random() * available.length)] 
+            : questionBank[Math.floor(Math.random() * questionBank.length)];
+
+        roomsData[roomID].usedQuestions.push(q.q);
+        io.to(roomID).emit('startAuction', { hint: q.hint, fullQuestion: q, level: data.level });
     });
 
-    socket.on('placeBid', (data) => {
-        const room = roomsData[socket.currentRoom];
-        if (room.frozenTeam === data.team) return socket.emit('notification', 'فريقك مجمد حالياً! ❄️');
-        io.to(socket.currentRoom).emit('updateBid', data);
-    });
+    socket.on('winAuction', (data) => {
+        const roomID = socket.currentRoom;
+        if (!roomID || socket.id !== roomsData[roomID].adminID) return; // المشرف فقط
 
-    socket.on('usePowerUp', (data) => {
-        const room = roomsData[socket.currentRoom];
-        if (data.type === 'steal') {
-            const victim = data.team === 'أ' ? 'ب' : 'أ';
-            room.teams[victim].points -= 20;
-            room.teams[data.team].points += 20;
-        } else if (data.type === 'freeze') {
-            room.frozenTeam = data.team === 'أ' ? 'ب' : 'أ';
-            setTimeout(() => { room.frozenTeam = null; }, 10000); // إذابة الثلج بعد 10 ثوانٍ
-        }
-        io.to(socket.currentRoom).emit('updateScores', { pointsA: room.teams['أ'].points, pointsB: room.teams['ب'].points });
+        let duration = data.level === 'easy' ? 25 : (data.level === 'hard' ? 12 : 18);
+        io.to(roomID).emit('revealQuestion', { question: data.question, duration });
+        
+        // مسح أي عداد سابق وبدء واحد جديد
+        clearInterval(roomsData[roomID].timer);
+        roomsData[roomID].timer = setInterval(() => {
+            duration--;
+            io.to(roomID).emit('timerUpdate', duration);
+            if (duration <= 0) {
+                clearInterval(roomsData[roomID].timer);
+                io.to(roomID).emit('roundResult', { playerName: "انتهى الوقت", isCorrect: false, team: 'أ', points: roomsData[roomID].teams['أ'].points });
+            }
+        }, 1000);
     });
 
     socket.on('submitAnswer', (data) => {
-        const room = roomsData[socket.currentRoom];
+        const roomID = socket.currentRoom;
+        if(roomsData[roomID]) clearInterval(roomsData[roomID].timer); // إيقاف العداد
+
         const isCorrect = data.answer === data.correct;
-        const teamData = room.teams[data.team];
-        
-        if (isCorrect) {
-            teamData.combo++;
-            let gain = 50 + (teamData.combo >= 3 ? 20 : 0); // مكافأة الكومبو
-            teamData.points += gain;
-        } else {
-            teamData.combo = 0;
-            teamData.points -= 30;
+        if (roomsData[roomID]) {
+            roomsData[roomID].teams[data.team].points += isCorrect ? 50 : -30;
+            io.to(roomID).emit('roundResult', { 
+                playerName: data.name, 
+                isCorrect, 
+                team: data.team, 
+                points: roomsData[roomID].teams[data.team].points 
+            });
         }
-        io.to(socket.currentRoom).emit('roundResult', { isCorrect, team: data.team, points: teamData.points, combo: teamData.combo });
     });
 
-    socket.on('winAuction', (data) => io.to(socket.currentRoom).emit('revealQuestion', data));
+    socket.on('placeBid', (data) => io.to(socket.currentRoom).emit('updateBid', data));
 });
 
-server.listen(process.env.PORT || 3000);
+server.listen(process.env.PORT || 3000, () => console.log('🚀 السيرفر يعمل على منفذ 3000'));
+
 
