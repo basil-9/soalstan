@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>سؤالستان - النسخة الاحترافية الكاملة</title>
+    <title>سؤالستان - النسخة النهائية</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <style>
         :root { --main: #a855f7; --gold: #facc15; --red: #ef4444; --green: #22c55e; }
@@ -11,19 +11,22 @@
         
         .card { background: rgba(15, 23, 42, 0.95); border: 3px solid var(--main); border-radius: 30px; width: 92vw; max-width: 500px; min-height: 80vh; padding: 20px; position: relative; display: flex; flex-direction: column; align-items: center; box-shadow: 0 0 30px rgba(168, 85, 247, 0.2); margin: 15px 0; }
         
-        /* شريط المعلومات العلوي المطور */
+        /* شريط المعلومات العلوي */
         .top-bar { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5); padding: 12px 15px; border-radius: 15px; width: 100%; position: relative; margin-bottom: 20px; box-sizing: border-box; }
         
-        /* ساعة الوقت الفعلي في المنتصف تماماً */
+        /* ساعة اليوم في المنتصف تماماً */
         #real-time-clock { position: absolute; left: 50%; transform: translateX(-50%); background: rgba(168, 85, 247, 0.2); border: 1px solid var(--main); color: white; padding: 2px 12px; border-radius: 10px; font-weight: bold; font-size: 14px; white-space: nowrap; }
 
-        .btn-game { background: none; border: 2px solid var(--gold); color: var(--gold); padding: 10px 20px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; width: 100%; margin-top: 10px; }
+        .btn-game { background: none; border: 2px solid var(--gold); color: var(--gold); padding: 10px 20px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; width: 100%; margin-top: 10px; text-decoration: none; display: inline-block; text-align: center; }
         .btn-game:hover { background: var(--gold); color: black; }
         
         .input-box { background: rgba(255,255,255,0.05); border: 1px solid var(--main); color: white; padding: 10px; border-radius: 12px; text-align: center; font-size: 16px; width: 100%; margin: 5px 0; box-sizing: border-box; }
 
         #win-screen { display:none; text-align:center; width: 100%; padding: 40px 10px; }
-        .q-image { max-width: 100%; border-radius: 15px; margin-bottom: 15px; border: 2px solid var(--main); }
+        .q-image { max-width: 100%; max-height: 250px; border-radius: 15px; margin-bottom: 15px; border: 2px solid var(--main); object-fit: contain; }
+        
+        #options { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 20px; width: 100%; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -38,35 +41,39 @@
     </div>
 </div>
 
-<div id="game-screen" style="display: none; width: 100vw; justify-content: center;">
+<div id="game-screen" class="hidden" style="width: 100vw; justify-content: center;">
     <div class="card">
         <div class="top-bar">
             <div id="round-counter" style="color: var(--gold); font-weight: bold; font-size: 13px;">الجولة: <span id="current-round">1</span>/10</div>
+            
             <div id="real-time-clock">00:00:00</div>
+            
             <div style="font-size: 13px;">A: <span id="pts-A">100</span> | B: <span id="pts-B">100</span></div>
         </div>
 
         <div id="win-screen" class="animate__animated zoomIn">
-            <h1 style="font-size: 40px; color: var(--gold); text-shadow: 0 0 20px var(--gold);">🏆 مبروك لقد ربحت!</h1>
+            <h1 style="font-size: 35px; color: var(--gold); text-shadow: 0 0 20px var(--gold);">🏆 مبروك لقد ربحت!</h1>
             <h2 id="winner-text" style="color: white; margin: 20px 0;"></h2>
             <button class="btn-game" onclick="location.reload()">لعب مرة أخرى 🔄</button>
         </div>
 
         <div id="auction-area" style="text-align: center; width: 100%;">
             <h2 id="hint-text" style="font-size: 22px; border: 2px dashed var(--gold); padding: 20px; border-radius: 20px;">بانتظار القائد...</h2>
-            <div id="leader-controls" style="display:none; margin-top: 15px;">
+            
+            <div id="leader-controls" class="hidden" style="margin-top: 15px;">
                 <button class="btn-game" onclick="socket.emit('requestAuction')">سؤال جديد 🤖</button>
             </div>
-            <div id="bid-ui" style="display:none; margin-top: 15px;">
+            
+            <div id="bid-ui" class="hidden" style="margin-top: 15px;">
                 <p style="font-size: 18px;">المزاد الحالي: <span id="current-bid" style="color:var(--gold); font-weight:bold;">0</span></p>
                 <button class="btn-game" onclick="bid()">زايد +10 🔨</button>
-                <button id="win-btn" class="btn-game" style="display:none; background:white; color:black;" onclick="socket.emit('winAuction', {question:currentQ})">شراء السؤال ✅</button>
+                <button id="win-btn" class="btn-game hidden" style="background:white; color:black;" onclick="socket.emit('winAuction', {question:currentQ})">شراء السؤال ✅</button>
             </div>
         </div>
 
-        <div id="question-area" style="display: none; text-align: center; width: 100%;">
+        <div id="question-area" class="hidden" style="text-align: center; width: 100%;">
             <div id="q-content"></div>
-            <div id="options" style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 20px; width: 100%;"></div>
+            <div id="options"></div>
         </div>
     </div>
 </div>
@@ -76,13 +83,12 @@
     const socket = io();
     let myInfo = {}, isLeader = false, currentQ = {};
 
-    // تحديث ساعة الوقت الفعلي في المنتصف
+    // تحديث ساعة اليوم في المنتصف
     function updateClock() {
         const now = new Date();
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const seconds = String(now.getSeconds()).padStart(2, '0');
-        document.getElementById('real-time-clock').innerText = `${hours}:${minutes}:${seconds}`;
+        const timeString = now.toLocaleTimeString('ar-SA', { hour12: false });
+        const clockEl = document.getElementById('real-time-clock');
+        if(clockEl) clockEl.innerText = timeString;
     }
     setInterval(updateClock, 1000);
     updateClock();
@@ -92,14 +98,15 @@
         const r = document.getElementById('room-id').value;
         if(!n || !r) return alert("يرجى إكمال البيانات");
         myInfo = { name: n, room: r, team: t };
-        document.getElementById('join-screen').style.display = 'none';
+        document.getElementById('join-screen').classList.add('hidden');
         document.getElementById('game-screen').style.display = 'flex';
+        document.getElementById('game-screen').classList.remove('hidden');
         socket.emit('joinRoom', { ...myInfo });
     }
 
     socket.on('init', d => {
         isLeader = d.isLeader;
-        if (isLeader) document.getElementById('leader-controls').style.display = 'block';
+        if (isLeader) document.getElementById('leader-controls').classList.remove('hidden');
         document.getElementById('pts-A').innerText = d.pointsA;
         document.getElementById('pts-B').innerText = d.pointsB;
     });
@@ -107,35 +114,42 @@
     socket.on('startAuction', d => {
         currentQ = d.fullQuestion;
         document.getElementById('current-round').innerText = d.roundNumber;
-        document.getElementById('auction-area').style.display = 'block';
-        document.getElementById('question-area').style.display = 'none';
+        document.getElementById('auction-area').classList.remove('hidden');
+        document.getElementById('question-area').classList.add('hidden');
         document.getElementById('win-screen').style.display = 'none';
         document.getElementById('hint-text').innerText = "التلميح: " + d.hint;
         document.getElementById('current-bid').innerText = '0';
-        document.getElementById('bid-ui').style.display = 'block';
-        if(isLeader) document.getElementById('win-btn').style.display = 'none';
+        document.getElementById('bid-ui').classList.remove('hidden');
+        if(isLeader) document.getElementById('win-btn').classList.add('hidden');
     });
 
-    function bid() { socket.emit('placeBid', { amount: parseInt(document.getElementById('current-bid').innerText) + 10 }); }
+    function bid() { 
+        const current = parseInt(document.getElementById('current-bid').innerText);
+        socket.emit('placeBid', { amount: current + 10 }); 
+    }
     
     socket.on('updateBid', d => { 
         document.getElementById('current-bid').innerText = d.amount; 
-        if(isLeader) document.getElementById('win-btn').style.display = 'block'; 
+        if(isLeader) document.getElementById('win-btn').classList.remove('hidden'); 
     });
 
     socket.on('revealQuestion', d => {
         const content = document.getElementById('q-content');
+        // تعديل لعرض الصور بشكل صحيح
         content.innerHTML = d.question.img ? `<img src="${d.question.img}" class="q-image">` : '';
-        content.innerHTML += `<h2 style="font-size: 24px; color: var(--main);">${d.question.q}</h2>`;
+        content.innerHTML += `<h2 style="font-size: 24px; color: var(--main); margin-top:10px;">${d.question.q}</h2>`;
         renderOptions(d.question.options);
-        document.getElementById('auction-area').style.display = 'none';
-        document.getElementById('question-area').style.display = 'block';
+        document.getElementById('auction-area').classList.add('hidden');
+        document.getElementById('question-area').classList.remove('hidden');
     });
 
     function renderOptions(opts) {
-        const container = document.getElementById('options'); container.innerHTML = '';
+        const container = document.getElementById('options'); 
+        container.innerHTML = '';
         opts.forEach(o => {
-            const b = document.createElement('button'); b.className = 'btn-game'; b.innerText = o;
+            const b = document.createElement('button'); 
+            b.className = 'btn-game'; 
+            b.innerText = o;
             b.onclick = () => socket.emit('submitAnswer', { team: myInfo.team, answer: o, name: myInfo.name });
             container.appendChild(b);
         });
@@ -143,16 +157,16 @@
 
     socket.on('roundResult', d => {
         document.getElementById(`pts-${d.team}`).innerText = d.points;
-        document.getElementById('question-area').style.display = 'none';
-        document.getElementById('auction-area').style.display = 'block';
-        document.getElementById('bid-ui').style.display = 'none';
+        document.getElementById('question-area').classList.add('hidden');
+        document.getElementById('auction-area').classList.remove('hidden');
+        document.getElementById('bid-ui').classList.add('hidden');
         document.getElementById('hint-text').innerText = d.isCorrect ? "إجابة صحيحة! ✅" : "إجابة خاطئة! ❌";
     });
 
-    // شاشة الفوز النهائية بعبارة "مبروك لقد ربحت!"
+    // شاشة الفوز النهائية
     socket.on('gameOver', d => {
-        document.getElementById('auction-area').style.display = 'none';
-        document.getElementById('question-area').style.display = 'none';
+        document.getElementById('auction-area').classList.add('hidden');
+        document.getElementById('question-area').classList.add('hidden');
         document.getElementById('win-screen').style.display = 'block';
         const winner = d.pointsA > d.pointsB ? "الفريق A" : "الفريق B";
         document.getElementById('winner-text').innerText = `الفريق الفائز هو: ${winner}`;
@@ -160,6 +174,7 @@
 </script>
 </body>
 </html>
+
 
 
 
