@@ -28,7 +28,8 @@ io.on('connection', (socket) => {
         } else if (!roomsData[roomID].teams[team].leader) {
             roomsData[roomID].teams[team].leader = socket.id;
         }
-        socket.emit('init', { pointsA: roomsData[roomID].teams['أ'].points, pointsB: roomsData[roomID].teams['ب'].points, isLeader: socket.id === roomsData[roomID].teams[team].leader, settings: roomsData[roomID].settings });
+        const room = roomsData[roomID];
+        socket.emit('init', { pointsA: room.teams['أ'].points, pointsB: room.teams['ب'].points, isLeader: socket.id === room.teams[team].leader, settings: room.settings });
     });
 
     socket.on('requestAuction', () => {
@@ -50,8 +51,7 @@ io.on('connection', (socket) => {
             if (!room.turnTaken) {
                 room.turnTaken = true;
                 const wrongOptions = room.currentQuestion.options.filter(o => o !== room.currentQuestion.a);
-                const keptWrong = wrongOptions.slice(0, 2); 
-                const newOptions = [room.currentQuestion.a, ...keptWrong].sort(() => Math.random() - 0.5);
+                const newOptions = [room.currentQuestion.a, wrongOptions[0], wrongOptions[1]].sort(() => Math.random() - 0.5);
                 io.to(socket.currentRoom).emit('passTurn', { toTeam: data.team === 'أ' ? 'ب' : 'أ', newOptions: newOptions, points: room.teams[data.team].points });
             } else {
                 io.to(socket.currentRoom).emit('roundResult', { isCorrect: false, team: data.team, points: room.teams[data.team].points, name: data.name, correctAns: room.currentQuestion.a });
@@ -63,6 +63,7 @@ io.on('connection', (socket) => {
     socket.on('placeBid', (d) => io.to(socket.currentRoom).emit('updateBid', d));
 });
 server.listen(process.env.PORT || 3000);
+
 
 
 
