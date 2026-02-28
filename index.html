@@ -2,43 +2,73 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>سؤالستان - الرابط الذكي</title>
+    <title>سؤالستان - النسخة الحماسية القصوى</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <style>
-        :root { --bg-blue: #1e40af; --gold: #facc15; --gold-dark: #ca8a04; }
-        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: radial-gradient(circle, #1e40af 0%, #1e3a8a 100%); color: white; }
+        :root { --bg-blue: #1e40af; --gold: #facc15; --gold-dark: #ca8a04; --red: #ef4444; }
+        
+        body { 
+            margin: 0; padding: 0; height: 100vh; overflow: hidden; 
+            font-family: 'Segoe UI', sans-serif; 
+            background: linear-gradient(-45deg, #1e40af, #1e3a8a, #1d4ed8, #1e40af);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: white; display: flex; align-items: center; justify-content: center;
+        }
+
+        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
         .screen { display: none; flex-direction: column; width: 100vw; height: 100vh; padding: 20px; box-sizing: border-box; align-items: center; justify-content: center; }
         .active-screen { display: flex; }
-        .card { background: white; color: #333; border-radius: 30px; width: 95%; height: 90%; max-width: 1200px; padding: 40px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
-        
-        #timer-bar-container { width: 100%; height: 20px; background: #eee; border-radius: 10px; overflow: hidden; display: none; margin-bottom: 10px; }
-        #timer-bar { width: 100%; height: 100%; background: linear-gradient(90deg, #ef4444, #facc15); transition: 1s linear; }
 
-        .room-display-box { background: #000; color: gold; padding: 10px 20px; border-radius: 15px; font-weight: bold; font-size: 22px; cursor: pointer; }
-        .btn-main { background: var(--gold); padding: 15px 30px; font-size: 22px; font-weight: bold; border: 4px solid #000; border-radius: 12px; cursor: pointer; box-shadow: 0 6px 0 var(--gold-dark); margin: 5px; }
-        input { padding: 15px; width: 80%; border-radius: 12px; border: 3px solid #000; font-size: 20px; text-align: center; margin-bottom: 10px; }
-        #share-link-area { background: #f8fafc; border: 2px dashed #cbd5e1; padding: 10px; border-radius: 12px; margin-top: 10px; font-size: 14px; width: 80%; display: none; cursor: pointer; }
+        .card { 
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+            color: #333; border-radius: 40px; width: 95%; height: 90%; max-width: 1200px; 
+            padding: 40px; box-sizing: border-box; display: flex; flex-direction: column; 
+            justify-content: space-between; position: relative; 
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3); border: 5px solid rgba(255,255,255,0.2);
+        }
+
+        #timer-bar-container { width: 100%; height: 15px; background: #eee; border-radius: 10px; overflow: hidden; display: none; margin-bottom: 10px; }
+        #timer-bar { width: 100%; height: 100%; background: linear-gradient(90deg, var(--gold), var(--red)); transition: 1s linear; }
+
+        .btn-main { 
+            background: var(--gold); padding: 15px 35px; font-size: 22px; font-weight: bold; 
+            border: 3px solid #000; border-radius: 15px; cursor: pointer; 
+            box-shadow: 0 6px 0 var(--gold-dark); transition: 0.2s; 
+        }
+        .btn-main:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--gold-dark); }
+
+        .opt-btn { 
+            padding: 25px; font-size: 24px; font-weight: bold; background: #2563eb; 
+            color: white; border: none; border-radius: 20px; cursor: pointer; 
+            transition: 0.3s; box-shadow: 0 5px 15px rgba(37, 99, 235, 0.3);
+        }
+        .opt-btn:hover { background: #1e40af; transform: scale(1.02); }
+
+        #share-link-area { background: #f0f4f8; padding: 12px; border-radius: 15px; margin-top: 15px; border: 2px dashed #3b82f6; display: none; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div id="join-screen" class="screen active-screen">
-    <div class="card" style="align-items: center; justify-content: center;">
-        <h1 style="font-size: 60px; color:#1e40af; margin:0;">🌙 سـؤالسـتان 🌙</h1>
-        <p>ادخل اسمك وكود الغرفة، أو أنشئ واحدة جديدة</p>
+    <div class="card animate__animated animate__zoomIn" style="align-items: center; justify-content: center;">
+        <h1 class="animate__animated animate__pulse animate__infinite" style="font-size: 70px; color:#1e40af; margin:0;">🔨 سـؤالسـتان 🔨</h1>
+        <p style="font-size: 20px; color: #666;">نسخة رمضان التفاعلية 🌙</p>
         
-        <input type="text" id="player-name" placeholder="ادخل اسـم البطل">
+        <input type="text" id="player-name" placeholder="ادخل اسمك" style="padding:15px; width:70%; border-radius:15px; border:3px solid #000; text-align:center; font-size:20px;">
         
-        <div style="display: flex; gap: 10px; width: 80%; justify-content: center;">
-            <input type="text" id="room-id" placeholder="كود الغرفة" style="width: 60%; margin: 0;">
-            <button class="btn-main" style="font-size: 14px; padding: 10px;" onclick="generateRoomCode()">توليد كود 🎲</button>
+        <div style="display: flex; gap: 10px; width: 70%; margin-top:10px;">
+            <input type="text" id="room-id" placeholder="كود الغرفة" style="padding:15px; flex:1; border-radius:15px; border:3px solid #000; text-align:center; font-size:20px;">
+            <button class="btn-main" style="font-size:20px;" onclick="generateRoomCode()">🎲</button>
         </div>
 
         <div id="share-link-area" onclick="copyShareLink()">
-            <span>رابط الدعوة المباشر: </span>
-            <strong id="share-url-text"></strong> 📋
+            <span style="font-size: 14px; color: #1e40af;">اضغط لنسخ رابط الدعوة المباشر 📋</span>
+            <div id="share-url-text" style="font-size: 11px; color: #555; margin-top:5px;"></div>
         </div>
 
-        <div style="margin-top: 20px;">
+        <div style="margin-top: 30px;">
             <button class="btn-main" style="background:#3b82f6; color:white;" onclick="joinGame('أ')">فـريق أ</button>
             <button class="btn-main" style="background:#ef4444; color:white;" onclick="joinGame('ب')">فـريق ب</button>
         </div>
@@ -48,15 +78,15 @@
 <div id="main-game-screen" class="screen">
     <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div id="admin-tag" style="display:none; background: gold; color: black; padding: 5px 15px; border-radius: 10px; font-weight: bold;">👑 المشرف</div>
-            <div class="room-display-box" onclick="copyCurrentRoom()">كود الغرفة: <span id="current-room-id">---</span> 📋</div>
+            <div id="admin-tag" style="display:none; background: #000; color: gold; padding: 5px 15px; border-radius: 10px; font-weight: bold;">👑 المشرف</div>
+            <div style="background: #000; color: gold; padding: 10px 20px; border-radius: 15px; font-weight: bold; cursor: pointer;" onclick="copyCurrentRoom()">كود الغرفة: <span id="current-room-id">---</span> 📋</div>
         </div>
 
         <div id="timer-bar-container"><div id="timer-bar"></div></div>
 
         <div style="display: flex; justify-content: space-between; font-size: 35px; font-weight: bold;">
-            <div style="color: #1e3a8a;">فريق أ: <span id="pts-أ">100</span></div>
-            <div style="color: #dc2626;">فريق ب: <span id="pts-ب">100</span></div>
+            <div id="score-أ" style="color: #1e3a8a;">فريق أ: <span id="pts-أ">100</span></div>
+            <div id="score-ب" style="color: #dc2626;">فريق ب: <span id="pts-ب">100</span></div>
         </div>
 
         <div id="level-selector" style="display:none;">
@@ -66,34 +96,41 @@
         </div>
 
         <div id="auction-ui">
-            <h2 id="hint-label" style="background: #fff9c4; padding: 20px; border-radius: 20px;">بانتظار المشرف لبدء المزاد...</h2>
-            <div id="bid-ui" style="display:none;">
-                <p style="font-size: 30px;">المزاد: <mark id="high-bid">0</mark> (<span id="high-team">-</span>)</p>
-                <button class="btn-main" onclick="bid(10)">+10</button>
-                <button id="win-btn" class="btn-main" style="display:none; background:black; color:white;" onclick="win()">إرساء 🏁</button>
+            <h2 id="hint-label" style="background: #fff9c4; padding: 25px; border-radius: 25px; border: 3px dashed #facc15;">بانتظار المشرف...</h2>
+            <div id="bid-ui" style="display:none;" class="animate__animated animate__fadeInUp">
+                <p style="font-size: 40px;">المزاد الحالي: <mark id="high-bid">0</mark></p>
+                <p id="high-team" style="font-size: 20px; color: #666;">-</p>
+                <button class="btn-main" onclick="bid(10)">ارفع المزاد +10 🔨</button>
+                <button id="win-btn" class="btn-main" style="display:none; background:black; color:white;" onclick="win()">إرساء المزاد 🏁</button>
             </div>
         </div>
 
         <div id="game-play" style="display:none; flex-direction: column;">
-            <h1 id="question-text" style="font-size: 45px; color: #1e40af;"></h1>
+            <h1 id="question-text" style="font-size: 40px; color: #1e40af;" class="animate__animated animate__backInRight"></h1>
             <div id="options-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;"></div>
         </div>
     </div>
 </div>
+
+<script>
+    const sounds = {
+        bid: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'),
+        correct: new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3'),
+        wrong: new Audio('https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3'),
+        timer: new Audio('https://assets.mixkit.co/active_storage/sfx/1003/1003-preview.mp3')
+    };
+    sounds.timer.loop = true;
+</script>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
     const socket = io();
     let myTeam, myName, myRoom, currentQ, currentBid = 0, currentLevel, maxTime;
 
-    // فحص الرابط عند الفتح
     window.onload = () => {
         const urlParams = new URLSearchParams(window.location.search);
         const roomFromUrl = urlParams.get('room');
-        if (roomFromUrl) {
-            document.getElementById('room-id').value = roomFromUrl;
-            updateShareDisplay(roomFromUrl);
-        }
+        if (roomFromUrl) { document.getElementById('room-id').value = roomFromUrl; updateShareDisplay(roomFromUrl); }
     };
 
     function generateRoomCode() {
@@ -108,26 +145,21 @@
         document.getElementById('share-link-area').style.display = 'block';
     }
 
-    function copyShareLink() {
-        navigator.clipboard.writeText(document.getElementById('share-url-text').innerText);
-        alert("تم نسخ رابط الدعوة!");
-    }
-
-    function copyCurrentRoom() {
-        navigator.clipboard.writeText(myRoom);
-        alert("تم نسخ الكود: " + myRoom);
-    }
+    function copyShareLink() { navigator.clipboard.writeText(document.getElementById('share-url-text').innerText); alert("تم نسخ الرابط! أرسله لأصدقائك."); }
+    function copyCurrentRoom() { navigator.clipboard.writeText(myRoom); alert("تم نسخ كود الغرفة!"); }
 
     function joinGame(teamLetter) {
         const name = document.getElementById('player-name').value.trim();
         const room = document.getElementById('room-id').value.trim();
         if (!name || !room) return alert("أكمل البيانات!");
-        
         myName = name; myRoom = room; myTeam = teamLetter;
         document.getElementById('current-room-id').innerText = room;
-        document.getElementById('join-screen').style.display = 'none';
-        document.getElementById('main-game-screen').style.display = 'flex';
-        socket.emit('joinRoom', { name, roomID: room, team: teamLetter });
+        document.getElementById('join-screen').classList.add('animate__animated', 'animate__fadeOut');
+        setTimeout(() => {
+            document.getElementById('join-screen').style.display = 'none';
+            document.getElementById('main-game-screen').style.display = 'flex';
+            socket.emit('joinRoom', { name, roomID: room, team: teamLetter });
+        }, 500);
     }
 
     socket.on('init', data => {
@@ -141,6 +173,7 @@
     });
 
     function requestNewAuction(lvl) { currentLevel = lvl; socket.emit('requestAuction', { level: lvl }); }
+    
     socket.on('startAuction', data => {
         document.getElementById('hint-label').innerText = "تلميح: " + data.hint;
         document.getElementById('bid-ui').style.display = "block";
@@ -148,19 +181,24 @@
         document.getElementById('timer-bar-container').style.display = "none";
         currentQ = data.fullQuestion; currentBid = 0;
         document.getElementById('high-bid').innerText = "0";
-        document.getElementById('high-team').innerText = "-";
     });
 
     function bid(amt) { socket.emit('placeBid', { team: myTeam, amount: currentBid + amt, name: myName }); }
+    
     socket.on('updateBid', data => {
+        sounds.bid.play();
         currentBid = data.amount;
-        document.getElementById('high-bid').innerText = data.amount;
-        document.getElementById('high-team').innerText = `${data.name} (فريق ${data.team})`;
+        const bidTxt = document.getElementById('high-bid');
+        bidTxt.innerText = data.amount;
+        bidTxt.classList.add('animate__animated', 'animate__bounceIn');
+        setTimeout(() => bidTxt.classList.remove('animate__animated', 'animate__bounceIn'), 500);
+        document.getElementById('high-team').innerText = `بواسطة: ${data.name} (فريق ${data.team})`;
     });
 
     function win() { socket.emit('winAuction', { question: currentQ, level: currentLevel }); }
 
     socket.on('revealQuestion', data => {
+        sounds.timer.play();
         maxTime = data.duration;
         document.getElementById('bid-ui').style.display = "none";
         document.getElementById('game-play').style.display = "flex";
@@ -170,7 +208,7 @@
         container.innerHTML = '';
         data.question.options.forEach(opt => {
             const btn = document.createElement('button');
-            btn.className = "btn-main"; btn.style.background = "#2563eb"; btn.style.color = "white";
+            btn.className = "opt-btn animate__animated animate__fadeInUp";
             btn.innerText = opt;
             btn.onclick = () => socket.emit('submitAnswer', { team: myTeam, answer: opt, correct: data.question.a, name: myName });
             container.appendChild(btn);
@@ -182,14 +220,20 @@
     });
 
     socket.on('roundResult', data => {
+        sounds.timer.pause();
+        sounds.timer.currentTime = 0;
+        if(data.isCorrect) sounds.correct.play(); else sounds.wrong.play();
+        
         document.getElementById('timer-bar-container').style.display = "none";
-        alert(`${data.playerName}: ${data.isCorrect ? "✅ صح" : "❌ خطأ"}`);
+        alert(`${data.playerName}: ${data.isCorrect ? "✅ إجابة صحيحة!" : "❌ إجابة خاطئة!"}`);
         document.getElementById(`pts-${data.team}`).innerText = data.points;
         document.getElementById('game-play').style.display = "none";
+        document.getElementById('hint-label').innerText = "بانتظار الجولة القادمة...";
     });
 </script>
 </body>
 </html>
+
 
 
 
