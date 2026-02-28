@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -9,25 +10,20 @@ const io = new Server(server, { cors: { origin: "*" } });
 
 app.use(express.static(__dirname)); 
 
-// وضعنا الأسئلة هنا مزودة بكلمتي (img و image) عشان تشتغل غصب على أي واجهة عندك!
-let questionBank = [
-  { 
-      "type": "image", 
-      "hint": "اختبار الصور", 
-      "q": "هل تظهر هذه الصورة (جبال الألب) بشكل سليم الآن؟", 
-      "img": "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&q=80", 
-      "image": "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&q=80", 
-      "options": ["نعم تظهر", "لا", "ربما", "شاشة سوداء"], 
-      "a": "نعم تظهر" 
-  },
-  { 
-      "type": "text", 
-      "hint": "رياضة: كأس العالم", 
-      "q": "من هو المنتخب الذي فاز بكأس العالم 2022؟", 
-      "options": ["فرنسا", "الأرجنتين", "البرازيل", "المغرب"], 
-      "a": "الأرجنتين" 
-  }
-];
+let questionBank = [];
+
+// نظام الحماية: يقرأ الأسئلة بدون ما يطيح السيرفر لو فيه خطأ
+try {
+    const data = fs.readFileSync(path.join(__dirname, 'questions.json'), 'utf8');
+    questionBank = JSON.parse(data);
+    console.log(`✅ تم تحميل ${questionBank.length} سؤال بنجاح!`);
+} catch (e) {
+    console.error("❌ خطأ في ملف questions.json! تأكد من الفواصل والأقواس:", e.message);
+    // سؤال بديل مؤقت عشان ما تخرب اللعبة
+    questionBank = [{
+        "type": "text", "hint": "تنبيه للقائد", "q": "يوجد خطأ (فاصلة أو قوس) في ملف questions.json، يرجى إصلاحه!", "options": ["حسناً", "جاري التعديل", "تم", "علم"], "a": "حسناً"
+    }];
+}
 
 let roomsData = {};
 
@@ -111,6 +107,8 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log('🚀 Server running on port ' + PORT));
+
+
 
 
 
