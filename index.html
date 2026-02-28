@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>سؤالستان - النسخة النهائية</title>
+    <title>سؤالستان - النسخة النهائية المعتمدة</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <style>
         :root { --main: #a855f7; --gold: #facc15; --red: #ef4444; --green: #22c55e; }
@@ -14,6 +14,7 @@
         .btn-game { background: none; border: 2px solid var(--gold); color: var(--gold); padding: 12px 25px; border-radius: 15px; font-size: 22px; font-weight: bold; cursor: pointer; transition: 0.3s; }
         .input-box { background: rgba(255,255,255,0.05); border: 1px solid var(--main); color: white; padding: 12px; border-radius: 15px; text-align: center; font-size: 18px; width: 100%; margin: 5px 0; }
         #result-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; padding: 40px; border-radius: 30px; display: none; text-align: center; z-index: 200; backdrop-filter: blur(15px); border: 5px solid; }
+        #share-area { background: rgba(168, 85, 247, 0.1); padding: 10px; border-radius: 10px; border: 1px dashed var(--main); cursor: pointer; font-size: 14px; width: 80%; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
@@ -22,15 +23,19 @@
 <div id="timer-container"><div id="timer-bar"></div></div>
 <button style="position:absolute; top:20px; left:20px; z-index:1001; background:none; color:white; border:1px solid white; padding:8px 15px; border-radius:12px; cursor:pointer;" onclick="location.reload()">⬅ خروج</button>
 
-<div id="join-screen" style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+<div id="join-screen" style="display: flex; flex-direction: column; align-items: center; text-align: center; width: 100%;">
     <h1 style="font-size: 85px; color: var(--main); text-shadow: 0 0 20px var(--main); margin: 0;">سؤالستان</h1>
     <div style="width: 380px;">
         <input type="text" id="player-name" class="input-box" placeholder="اسم البطل">
-        <input type="text" id="room-id" class="input-box" placeholder="كود الغرفة">
+        <div style="display: flex; gap: 5px;">
+            <input type="text" id="room-id" class="input-box" placeholder="كود الغرفة">
+            <button class="btn-game" style="font-size: 14px;" onclick="generateCode()">🎲</button>
+        </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
             <div><label style="font-size:12px;">وقت السؤال</label><input type="number" id="set-time" class="input-box" value="30"></div>
             <div><label style="font-size:12px;">عدد الجولات</label><input type="number" id="set-rounds" class="input-box" value="10"></div>
         </div>
+        <div id="share-area" onclick="copyLink()">رابط الدعوة: <span id="share-url"></span> 📋</div>
         <button class="btn-game" style="margin-top:25px; width:100%;" onclick="join('أ')">دخول فريق أ</button>
         <button class="btn-game" style="margin-top:12px; width:100%; border-color:var(--red); color:var(--red);" onclick="join('ب')">دخول فريق ب</button>
     </div>
@@ -44,6 +49,7 @@
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 20px;">
             <div id="leader-tag" style="display:none; color: var(--gold); font-weight: bold;">👑 قائد</div>
+            <div onclick="copyRoomCode()">كود: <span id="display-room-id">---</span> 📋</div>
             <div style="font-size: 24px;">أ: <span id="pts-أ">100</span> | ب: <span id="pts-ب">100</span></div>
         </div>
         <div id="auction-area" style="text-align: center;">
@@ -62,23 +68,35 @@
     </div>
 </div>
 
+<script src="/socket.io/socket.io.js"></script>
 <script>
-    // الأصوات المتبقية: مزايدة، صح، خطأ
     const sounds = {
         correct: new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3'),
         wrong: new Audio('https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3'),
         bid: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3')
     };
-</script>
 
-<script src="/socket.io/socket.io.js"></script>
-<script>
     const socket = io();
     let myInfo = {}, isLeader = false, currentQ = {}, timerInt, roomSettings = {};
+
+    function generateCode() {
+        const code = "GAME-" + Math.floor(1000 + Math.random() * 9000);
+        document.getElementById('room-id').value = code;
+        document.getElementById('share-url').innerText = window.location.origin + "/?room=" + code;
+        document.getElementById('share-area').style.display = 'block';
+    }
+    function copyLink() { navigator.clipboard.writeText(document.getElementById('share-url').innerText); alert("تم نسخ رابط الدعوة!"); }
+    function copyRoomCode() { navigator.clipboard.writeText(myInfo.room); alert("تم نسخ الكود!"); }
+
+    window.onload = () => {
+        const r = new URLSearchParams(window.location.search).get('room');
+        if (r) { document.getElementById('room-id').value = r; generateCode(); }
+    };
 
     function join(t) {
         myInfo = { name: document.getElementById('player-name').value, room: document.getElementById('room-id').value, team: t };
         const settings = { roundTime: parseInt(document.getElementById('set-time').value), maxRounds: parseInt(document.getElementById('set-rounds').value) };
+        document.getElementById('display-room-id').innerText = myInfo.room;
         document.getElementById('join-screen').style.display = 'none';
         document.getElementById('game-screen').style.display = 'flex';
         socket.emit('joinRoom', { ...myInfo, settings });
@@ -128,7 +146,7 @@
 
     socket.on('passTurn', d => {
         sounds.wrong.play();
-        alert(`خطأ! الفرصة لـ فريق ${d.toTeam} مع حذف إجابة واحدة!`);
+        alert(`خطأ! نفس السؤال ينتقل لـ فريق ${d.toTeam} مع حذف إجابة واحدة!`);
         if (myInfo.team === d.toTeam) {
             renderOptions(d.newOptions, currentQ.a);
             startTimer();
@@ -144,7 +162,6 @@
         if(d.isCorrect) { sounds.correct.play(); ov.style.borderColor = 'var(--green)'; ov.style.color = 'var(--green)'; document.getElementById('result-status').innerText = "✅ أحسنت!"; }
         else { sounds.wrong.play(); ov.style.borderColor = 'var(--red)'; ov.style.color = 'var(--red)'; document.getElementById('result-status').innerText = "❌ للأسف!"; }
         document.getElementById('result-detail').innerText = d.isCorrect ? d.name + " كسب 50 نقطة" : "الإجابة كانت: " + d.correctAns;
-
         setTimeout(() => {
             ov.style.display = 'none'; document.getElementById(`pts-${d.team}`).innerText = d.points;
             document.getElementById('question-area').style.display = 'none'; document.getElementById('auction-area').style.display = 'block';
