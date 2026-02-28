@@ -1,4 +1,4 @@
-const express = require('express'); // أضفنا تعريف express الناقص
+const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
@@ -27,30 +27,21 @@ io.on('connection', (socket) => {
 
         if (!roomsData[roomID]) {
             roomsData[roomID] = {
-                // توحيد أسماء الفرق لتطابق المتصفح
-                teams: { 
-                    'A': { points: 100, leader: socket.id }, 
-                    'B': { points: 100, leader: null } 
-                },
+                teams: { 'A': { points: 100, leader: socket.id }, 'B': { points: 100, leader: null } },
                 settings: settings || { roundTime: 30, maxRounds: 10 },
                 currentQuestion: null, 
+                currentRound: 0,
                 turnTaken: false
             };
-        } else {
-            // إذا لم يكن هناك قائد للفريق المنضم إليه، اجعله القائد
-            if (!roomsData[roomID].teams[team].leader) {
-                roomsData[roomID].teams[team].leader = socket.id;
-            }
+        } else if (team && !roomsData[roomID].teams[team].leader) {
+            roomsData[roomID].teams[team].leader = socket.id;
         }
 
         const room = roomsData[roomID];
-        // نرسل حالة القيادة بناءً على ما إذا كان الشخص هو القائد المسجل في فريقه
-        const isLeader = socket.id === room.teams[team].leader;
-
         socket.emit('init', { 
             pointsA: room.teams['A'].points, 
             pointsB: room.teams['B'].points, 
-            isLeader: isLeader, 
+            isLeader: socket.id === room.teams['A'].leader || socket.id === room.teams['B'].leader, 
             settings: room.settings 
         });
     });
@@ -58,10 +49,16 @@ io.on('connection', (socket) => {
     socket.on('requestAuction', () => {
         const room = roomsData[socket.currentRoom];
         if(!room || questionBank.length === 0) return;
+
+        room.currentRound++;
+        if (room.currentRound > room.settings.maxRounds) {
+            return io.to(socket.currentRoom).emit('gameOver', { pointsA: room.teams['A'].points, pointsB: room.teams['B'].points });
+        }
+
         const q = questionBank[Math.floor(Math.random() * questionBank.length)];
         room.currentQuestion = q; 
         room.turnTaken = false;
-        io.to(socket.currentRoom).emit('startAuction', { hint: q.hint, fullQuestion: q });
+        io.to(socket.currentRoom).emit('startAuction', { hint: q.hint, fullQuestion: q, roundNumber: room.currentRound });
     });
 
     socket.on('submitAnswer', (data) => {
@@ -89,7 +86,8 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log('🚀 سؤالستان تعمل بنظام القائد الموحد'));
+server.listen(PORT, () => console.log('🚀 Server running on port ' + PORT));
+
 
 
 
