@@ -43,7 +43,7 @@
     <h1 style="font-size: 45px; color: var(--main); text-shadow: 0 0 15px var(--main); margin: 10px 0;">سؤالستان</h1>
     
     <div style="width: 100%; max-width: 320px;">
-        <input type="text" id="player-name" class="input-box" placeholder="اسم البطل">
+        <input type="text" id="player-name" class="input-box" placeholder="اكتب اسمك">
         <div style="display: flex; gap: 5px;">
             <input type="text" id="room-id" class="input-box" placeholder="كود الغرفة">
             <button class="btn-game" style="width: 50px; margin-top: 5px; padding: 5px;" onclick="generateCode()">🎲</button>
@@ -54,6 +54,7 @@
                 <label style="font-size:11px; color: var(--gold);">وقت الجولة</label>
                 <select id="set-time" class="select-box">
                     <option value="15">15 ثانية</option>
+                     <option value="20" selected>20 ثانية</option>
                     <option value="30" selected>30 ثانية</option>
                     <option value="45">45 ثانية</option>
                     <option value="60">60 ثانية</option>
@@ -69,8 +70,8 @@
             </div>
         </div>
 
-        <button class="btn-game" onclick="join('أ')">دخول فريق أ</button>
-        <button class="btn-game" style="border-color:var(--red); color:var(--red);" onclick="join('ب')">دخول فريق ب</button>
+        <button class="btn-game" onclick="join('A')">team A</button>
+        <button class="btn-game" style="border-color:var(--red); color:var(--red);" onclick="join('B')">team B</button>
     </div>
 
     <div class="how-to-play">
@@ -93,7 +94,7 @@
         <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 15px; width: 100%; font-size: 13px;">
             <div id="leader-tag" style="display:none; color: var(--gold); font-weight: bold;">👑 قائد</div>
             <div onclick="copyRoomCode()"><span id="display-room-id">---</span> 📋</div>
-            <div>أ: <span id="pts-أ">100</span> | ب: <span id="pts-ب">100</span></div>
+            <div>A: <span id="pts-A">100</span> | B: <span id="pts-B">100</span></div>
         </div>
         
         <div id="auction-area" style="text-align: center; width: 100%; margin-top: 15px;">
@@ -102,7 +103,7 @@
             <div id="bid-ui" style="display:none; margin-top: 10px;">
                 <p>المزاد: <span id="current-bid">0</span></p>
                 <button class="btn-game" onclick="bid()">زايد +10 🔨</button>
-                <button id="win-btn" class="btn-game" style="display:none; background:white; color:black;" onclick="socket.emit('winAuction', {question:currentQ})">إرساء ✅</button>
+                <button id="win-btn" class="btn-game" style="display:none; background:white; color:black;" onclick="socket.emit('winAuction', {question:currentQ})">إرسال المزايدة ✅</button>
             </div>
         </div>
 
@@ -223,6 +224,7 @@
 </script>
 </body>
 </html>
+
 
 
 
