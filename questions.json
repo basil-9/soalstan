@@ -23,11 +23,6 @@
   { "type": "image", "hint": "جغرافيا: معالم", "q": "أين يقع سور الصين العظيم؟", "img": "https://upload.wikimedia.org/wikipedia/commons/2/23/The_Great_Wall_of_China_at_Jinshanling-edit.jpg", "options": ["اليابان", "الصين", "كوريا", "فيتنام"], "a": "الصين" },
   { "type": "text", "hint": "تكنولوجيا: ويب", "q": "ماذا يرمز اختصار الـ HTML؟", "options": ["HyperText Markup Language", "HighText Machine Language", "HyperTool Multi Language", "HomeTool Markup Language"], "a": "HyperText Markup Language" },
   { "type": "image", "hint": "شعارات: دفع", "q": "ما هي هذه الخدمة؟", "img": "https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg", "options": ["Mada", "Visa", "PayPal", "MasterCard"], "a": "PayPal" },
-  { "type": "text", "hint": "جغرافيا: عواصم", "q": "ما هي عاصمة أستراليا؟", "options": ["سيدني", "ميلبورن", "كانبرا", "بيرث"], "a": "كانبرا" },
-  { "type": "text", "hint": "إسلاميات: سور القرآن", "q": "ما هي السورة التي تسمى 'قلب القرآن'؟", "options": ["البقرة", "يس", "الرحمن", "الإخلاص"], "a": "يس" },
-  { "type": "text", "hint": "تاريخ: إسلامي", "q": "من هو أول مؤذن في الإسلام؟", "options": ["عمار بن ياسر", "بلال بن رباح", "أبو بكر الصديق", "علي بن أبي طالب"], "a": "بلال بن رباح" },
-  { "type": "text", "hint": "أنمي: ون بيس", "q": "من هو طباخ طاقم قبعة القش في أنمي ون بيس؟", "options": ["زورو", "سانجي", "يوسوب", "فرانكي"], "a": "سانجي" },
-  { "type": "رياضة: الدوري السعودي", "hint": "أي نادٍ سعودي يلقب بـ 'فارس الدهناء'؟", "q": "نادي الاتفاق", "options": ["الفتح", "الاتفاق", "القادسية", "النهضة"], "a": "الاتفاق" },
-  { "type": "text", "hint": "ألغاز: ذكاء", "q": "ماهو الشيء الذي له أسنان ولا يعض؟", "options": ["المشط", "المقص", "المنشار", "المفتاح"], "a": "المشط" }
+  { "type": "text", "hint": "جغرافيا: عواصم", "q": "ما هي عاصمة أستراليا؟", "options": ["سيدني", "ميلبورن", "كانبرا", "بيرث"], "a": "كانبرا" }
 ]
 
