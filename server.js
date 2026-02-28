@@ -13,29 +13,33 @@ app.use(express.static(__dirname));
 let questionBank = [];
 try {
     questionBank = JSON.parse(fs.readFileSync(path.join(__dirname, 'questions.json'), 'utf8'));
-} catch (err) { console.error("❌ ملف الأسئلة مفقود"); }
+} catch (e) {
+    console.log("Error loading questions.json");
+}
 
 let roomsData = {};
 
 io.on('connection', (socket) => {
     socket.on('joinRoom', (data) => {
-        const { roomID, name, team, settings } = data;
+        const { roomID, settings } = data;
         socket.join(roomID);
         socket.currentRoom = roomID;
         if (!roomsData[roomID]) {
             roomsData[roomID] = {
                 teams: { 'أ': { points: 100, leader: socket.id }, 'ب': { points: 100, leader: null } },
-                settings: settings,
+                settings: settings || { roundTime: 30, maxRounds: 10 },
                 currentQuestion: null, turnTaken: false
             };
-        } else if (!roomsData[roomID].teams[team].leader) {
-            roomsData[roomID].teams[team].leader = socket.id;
+        } else if (!roomsData[roomID].teams[data.team].leader) {
+            roomsData[roomID].teams[data.team].leader = socket.id;
         }
-        socket.emit('init', { pointsA: roomsData[roomID].teams['أ'].points, pointsB: roomsData[roomID].teams['ب'].points, isLeader: socket.id === roomsData[roomID].teams[team].leader, settings: roomsData[roomID].settings });
+        const room = roomsData[roomID];
+        socket.emit('init', { pointsA: room.teams['أ'].points, pointsB: room.teams['ب'].points, isLeader: socket.id === room.teams[data.team].leader, settings: room.settings });
     });
 
     socket.on('requestAuction', () => {
         const room = roomsData[socket.currentRoom];
+        if(!room || questionBank.length === 0) return;
         const q = questionBank[Math.floor(Math.random() * questionBank.length)];
         room.currentQuestion = q; room.turnTaken = false;
         io.to(socket.currentRoom).emit('startAuction', { hint: q.hint, fullQuestion: q });
@@ -43,6 +47,7 @@ io.on('connection', (socket) => {
 
     socket.on('submitAnswer', (data) => {
         const room = roomsData[socket.currentRoom];
+        if(!room) return;
         const isCorrect = data.answer === room.currentQuestion.a;
         if (isCorrect) {
             room.teams[data.team].points += 50;
@@ -60,10 +65,13 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('winAuction', (d) => io.to(socket.currentRoom).emit('revealQuestion', d));
     socket.on('placeBid', (d) => io.to(socket.currentRoom).emit('updateBid', d));
+    socket.on('winAuction', (d) => io.to(socket.currentRoom).emit('revealQuestion', d));
 });
-server.listen(process.env.PORT || 3000);
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log('🚀 سؤالستان تعمل على المنفذ ' + PORT));
+
 
 
 
