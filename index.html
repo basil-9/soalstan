@@ -1,416 +1,113 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لعبة المزاد الذكي</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const path = require('path');
+const fs = require('fs');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: "*" } });
+
+app.use(express.static(__dirname)); 
+
+let questionBank = [];
+
+// نظام الحماية: يقرأ الأسئلة بدون ما يطيح السيرفر لو فيه خطأ
+try {
+    const data = fs.readFileSync(path.join(__dirname, 'questions.json'), 'utf8');
+    questionBank = JSON.parse(data);
+    console.log(`✅ تم تحميل ${questionBank.length} سؤال بنجاح!`);
+} catch (e) {
+    console.error("❌ خطأ في ملف questions.json! تأكد من الفواصل والأقواس:", e.message);
+    // سؤال بديل مؤقت عشان ما تخرب اللعبة
+    questionBank = [{
+        "type": "text", "hint": "تنبيه للقائد", "q": "يوجد خطأ (فاصلة أو قوس) في ملف questions.json، يرجى إصلاحه!", "options": ["حسناً", "جاري التعديل", "تم", "علم"], "a": "حسناً"
+    }];
+}
+
+let roomsData = {};
+
+io.on('connection', (socket) => {
+    socket.on('joinRoom', (data) => {
+        const { roomID, settings, team } = data;
+        socket.join(roomID);
+        socket.currentRoom = roomID;
+
+        if (!roomsData[roomID]) {
+            roomsData[roomID] = {
+                teams: { 'A': { points: 100, leader: socket.id }, 'B': { points: 100, leader: null } },
+                settings: settings || { roundTime: 30, maxRounds: 10 },
+                currentQuestion: null, 
+                currentRound: 0,
+                turnTaken: false
+            };
+        } else if (team && !roomsData[roomID].teams[team].leader) {
+            roomsData[roomID].teams[team].leader = socket.id;
+        }
+
+        const room = roomsData[roomID];
+        socket.emit('init', { 
+            pointsA: room.teams['A'].points, 
+            pointsB: room.teams['B'].points, 
+            isLeader: socket.id === room.teams['A'].leader || socket.id === room.teams['B'].leader, 
+            settings: room.settings 
+        });
+    });
+
+    socket.on('requestAuction', () => {
+        const room = roomsData[socket.currentRoom];
+        if(!room || questionBank.length === 0) return;
+
+        room.currentRound++;
+        if (room.currentRound > room.settings.maxRounds) {
+            return io.to(socket.currentRoom).emit('gameOver', { pointsA: room.teams['A'].points, pointsB: room.teams['B'].points });
+        }
+
+        const q = questionBank[Math.floor(Math.random() * questionBank.length)];
+        room.currentQuestion = q; 
+        room.turnTaken = false;
+        io.to(socket.currentRoom).emit('startAuction', { hint: q.hint, fullQuestion: q, roundNumber: room.currentRound });
+    });
+
+    socket.on('submitAnswer', (data) => {
+        const room = roomsData[socket.currentRoom];
+        if(!room) return;
         
-        :root {
-            --primary: #2B2D42;
-            --secondary: #8D99AE;
-            --accent: #EF233C;
-            --text: #EDF2F4;
-            --success: #2ecc71;
-            --danger: #e74c3c;
-            --gold: #f1c40f;
-        }
-
-        * {
-            box-sizing: border-box;
-            font-family: 'Tajawal', sans-serif;
-        }
-
-        body {
-            background-color: var(--primary);
-            color: var(--text);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 800px;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            text-align: center;
-        }
-
-        h1 {
-            color: var(--gold);
-            font-size: 2.5rem;
-            margin-bottom: 30px;
-            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        }
-
-        input, select, button {
-            width: 100%;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 10px;
-            border: none;
-            font-size: 1.1rem;
-            outline: none;
-        }
-
-        input, select {
-            background: rgba(255,255,255,0.9);
-            color: var(--primary);
-        }
-
-        button {
-            background: var(--accent);
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
-            box-shadow: 0 4px 15px rgba(239, 35, 60, 0.4);
-        }
-
-        button:hover {
-            transform: translateY(-2px);
-            filter: brightness(1.1);
-        }
-
-        .header-stats {
-            display: flex;
-            justify-content: space-between;
-            background: rgba(0,0,0,0.3);
-            padding: 15px 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            font-size: 1.2rem;
-            font-weight: bold;
-        }
-
-        .team-a { color: #3498db; }
-        .team-b { color: #e67e22; }
-
-        .hint-box {
-            background: var(--gold);
-            color: var(--primary);
-            padding: 20px;
-            border-radius: 15px;
-            font-size: 1.5rem;
-            font-weight: 900;
-            margin: 20px 0;
-        }
-
-        .question-box {
-            background: rgba(255,255,255,0.1);
-            padding: 20px;
-            border-radius: 15px;
-            margin: 20px 0;
-            font-size: 1.5rem;
-            line-height: 1.6;
-        }
-
-        .question-image {
-            max-width: 100%;
-            max-height: 350px;
-            border-radius: 10px;
-            margin: 15px 0;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-            display: none; /* مخفية افتراضياً وتظهر فقط في أسئلة الصور */
-        }
-
-        .options-grid {
-            display: grid;
-            grid-template-columns: 1fr 1px;
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        @media (min-width: 600px) {
-            .options-grid { grid-template-columns: 1fr 1fr; }
-        }
-
-        .option-btn {
-            background: var(--secondary);
-            font-size: 1.2rem;
-            padding: 20px;
-            box-shadow: none;
-        }
-
-        .option-btn:hover { background: #7f8c8d; }
-        
-        .correct-answer {
-            background-color: var(--success) !important;
-            color: white !important;
-        }
-
-        .wrong-answer {
-            background-color: var(--danger) !important;
-            color: white !important;
-        }
-
-        .timer {
-            font-size: 2.5rem;
-            font-weight: bold;
-            color: var(--gold);
-            margin: 15px 0;
-        }
-
-        #bid-section { display: none; }
-        #question-section { display: none; }
-        
-        .hidden { display: none !important; }
-        
-        /* تنسيق أزرار القائد عشان تكون جنب بعض */
-        .leader-panel {
-            display: flex;
-            gap: 10px;
-        }
-    </style>
-</head>
-<body>
-
-    <audio id="sound-correct" src="https://www.myinstants.com/media/sounds/correct-sound-effect.mp3"></audio>
-    <audio id="sound-wrong" src="https://www.myinstants.com/media/sounds/wrong-buzzer.mp3"></audio>
-
-    <div class="container" id="login-screen">
-        <h1>لعبة المزاد الذكي 🎯</h1>
-        <input type="text" id="playerName" placeholder="أدخل اسمك" required>
-        <input type="text" id="roomID" placeholder="رمز الغرفة" required>
-        <select id="teamSelect">
-            <option value="A">الفريق الأزرق (A)</option>
-            <option value="B">الفريق البرتقالي (B)</option>
-        </select>
-        <button onclick="joinGame()">دخول اللعبة</button>
-    </div>
-
-    <div class="container" id="game-screen" class="hidden">
-        <div class="header-stats">
-            <div class="team-a">الفريق الأزرق: <span id="scoreA">100</span></div>
-            <div id="roundInfo">الجولة: <span id="roundNum">0</span></div>
-            <div class="team-b">الفريق البرتقالي: <span id="scoreB">100</span></div>
-        </div>
-
-        <div id="leaderControls" class="leader-panel hidden">
-            <button onclick="startNextRound()" style="background: var(--success);">بدء الجولة القادمة</button>
-            <button onclick="changeQuestion()" style="background: var(--secondary);">تغيير السؤال (نفس الجولة)</button>
-        </div>
-
-        <div id="bid-section">
-            <div class="hint-box" id="hintText">...</div>
-            <h3 id="currentBidder">المزاد مفتوح...</h3>
-            <input type="number" id="bidAmount" placeholder="مبلغ المزايدة">
-            <button onclick="placeBid()">مزايدة</button>
-            <button onclick="passAuction()" style="background: var(--secondary);">انسحاب (Pass)</button>
-        </div>
-
-        <div id="question-section">
-            <div class="timer" id="timerDisplay">30</div>
-            <div class="question-box">
-                <div id="questionText">...</div>
-                <img id="questionImage" class="question-image" src="" alt="صورة السؤال">
-            </div>
-            <div class="options-grid" id="optionsContainer"></div>
-        </div>
-    </div>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const socket = io();
-        let myTeam = '';
-        let myName = '';
-        let isLeader = false;
-        let currentQ = null;
-        let countdown;
-        let roundSettings = { roundTime: 30 };
-
-        function playSound(type) {
-            const audio = document.getElementById(type === 'correct' ? 'sound-correct' : 'sound-wrong');
-            if (audio) {
-                audio.currentTime = 0;
-                audio.play().catch(e => console.log("الصوت مقفل من المتصفح"));
+        if (data.answer === "TIMEOUT") {
+            room.teams[data.team].points -= 30;
+            if (!room.turnTaken) {
+                room.turnTaken = true;
+                const wrong = room.currentQuestion.options.filter(o => o !== room.currentQuestion.a);
+                const newOptions = [room.currentQuestion.a, wrong[0], wrong[1]].sort(() => Math.random() - 0.5);
+                io.to(socket.currentRoom).emit('passTurn', { toTeam: data.team === 'A' ? 'B' : 'A', newOptions, points: room.teams[data.team].points });
             }
+            return;
         }
 
-        function joinGame() {
-            myName = document.getElementById('playerName').value;
-            const roomID = document.getElementById('roomID').value;
-            myTeam = document.getElementById('teamSelect').value;
-
-            if(!myName || !roomID) return alert('يرجى إدخال الاسم ورمز الغرفة');
-
-            socket.emit('joinRoom', { roomID, team: myTeam });
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('game-screen').style.display = 'block';
-        }
-
-        socket.on('init', (data) => {
-            document.getElementById('scoreA').innerText = data.pointsA;
-            document.getElementById('scoreB').innerText = data.pointsB;
-            isLeader = data.isLeader;
-            roundSettings = data.settings;
-            if(isLeader) document.getElementById('leaderControls').classList.remove('hidden');
-        });
-
-        function startNextRound() {
-            socket.emit('requestAuction');
-        }
-
-        function changeQuestion() {
-            socket.emit('changeQuestion');
-        }
-
-        socket.on('startAuction', (data) => {
-            document.getElementById('leaderControls').classList.add('hidden');
-            document.getElementById('question-section').style.display = 'none';
-            document.getElementById('bid-section').style.display = 'block';
-            
-            document.getElementById('roundNum').innerText = data.roundNumber;
-            document.getElementById('hintText').innerText = "تلميح: " + data.hint;
-            document.getElementById('currentBidder').innerText = "المزاد مفتوح...";
-            document.getElementById('bidAmount').value = '';
-            
-            currentQ = data.fullQuestion;
-        });
-
-        function placeBid() {
-            const amount = document.getElementById('bidAmount').value;
-            if(amount) socket.emit('placeBid', { team: myTeam, name: myName, amount });
-        }
-
-        function passAuction() {
-            socket.emit('winAuction', { team: myTeam === 'A' ? 'B' : 'A' });
-        }
-
-        socket.on('updateBid', (data) => {
-            document.getElementById('currentBidder').innerText = `أعلى مزايدة: ${data.amount} من ${data.name} (${data.team})`;
-        });
-
-        socket.on('revealQuestion', (winnerData) => {
-            document.getElementById('bid-section').style.display = 'none';
-            document.getElementById('question-section').style.display = 'block';
-            
-            document.getElementById('questionText').innerText = currentQ.q;
-            
-            // حل مشكلة الصور: يقرأ الكلمتين (image أو img) عشان ما يخرب عليك أي سؤال
-            const imgElement = document.getElementById('questionImage');
-            const imgSrc = currentQ.image || currentQ.img; 
-            if (imgSrc) {
-                imgElement.src = imgSrc;
-                imgElement.style.display = 'block';
+        const isCorrect = data.answer === room.currentQuestion.a;
+        if (isCorrect) {
+            room.teams[data.team].points += 50;
+            io.to(socket.currentRoom).emit('roundResult', { isCorrect: true, team: data.team, points: room.teams[data.team].points, name: data.name, correctAns: room.currentQuestion.a });
+        } else {
+            room.teams[data.team].points -= 30;
+            if (!room.turnTaken) {
+                room.turnTaken = true;
+                const wrong = room.currentQuestion.options.filter(o => o !== room.currentQuestion.a);
+                const newOptions = [room.currentQuestion.a, wrong[0], wrong[1]].sort(() => Math.random() - 0.5);
+                io.to(socket.currentRoom).emit('passTurn', { toTeam: data.team === 'A' ? 'B' : 'A', newOptions, points: room.teams[data.team].points });
             } else {
-                imgElement.style.display = 'none';
-                imgElement.src = '';
+                io.to(socket.currentRoom).emit('roundResult', { isCorrect: false, team: data.team, points: room.teams[data.team].points, name: data.name, correctAns: room.currentQuestion.a });
             }
-
-            renderOptions(currentQ.options, winnerData.team === myTeam);
-            startTimer();
-        });
-
-        function renderOptions(options, isMyTurn) {
-            const container = document.getElementById('optionsContainer');
-            container.innerHTML = '';
-            options.forEach(opt => {
-                const btn = document.createElement('button');
-                btn.className = 'option-btn';
-                btn.innerText = opt;
-                if(isMyTurn) {
-                    btn.onclick = () => submitAnswer(opt, btn);
-                } else {
-                    btn.disabled = true;
-                    btn.style.opacity = '0.5';
-                }
-                container.appendChild(btn);
-            });
         }
+    });
 
-        function startTimer() {
-            clearInterval(countdown);
-            let timeLeft = roundSettings.roundTime;
-            document.getElementById('timerDisplay').innerText = timeLeft;
-            countdown = setInterval(() => {
-                timeLeft--;
-                document.getElementById('timerDisplay').innerText = timeLeft;
-                if(timeLeft <= 0) {
-                    clearInterval(countdown);
-                    submitAnswer("TIMEOUT", null);
-                }
-            }, 1000);
-        }
+    socket.on('placeBid', (d) => io.to(socket.currentRoom).emit('updateBid', d));
+    socket.on('winAuction', (d) => io.to(socket.currentRoom).emit('revealQuestion', d));
+});
 
-        function submitAnswer(ans, btnElement) {
-            clearInterval(countdown);
-            const allBtns = document.querySelectorAll('.option-btn');
-            allBtns.forEach(b => b.disabled = true);
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log('🚀 Server running on port ' + PORT));
 
-            if(btnElement && ans !== "TIMEOUT") {
-                btnElement.style.border = "3px solid white";
-            }
-
-            socket.emit('submitAnswer', { answer: ans, team: myTeam, name: myName });
-        }
-
-        // حل مشكلة انتهاء الوقت: ترجع الخيارات وتنتقل للخصم مع خصم نقاط
-        socket.on('timeOutPass', (data) => {
-            clearInterval(countdown);
-            playSound('wrong');
-            document.getElementById('scoreA').innerText = data.toTeam === 'B' ? data.points : document.getElementById('scoreA').innerText;
-            document.getElementById('scoreB').innerText = data.toTeam === 'A' ? data.points : document.getElementById('scoreB').innerText;
-            
-            setTimeout(() => {
-                alert(`انتهى الوقت! ⏳\nالسؤال ينتقل للفريق ${data.toTeam} مع حذف خيار`);
-                renderOptions(data.newOptions, data.toTeam === myTeam);
-                startTimer();
-            }, 500);
-        });
-
-        socket.on('passTurn', (data) => {
-            clearInterval(countdown);
-            playSound('wrong'); 
-            
-            document.getElementById('scoreA').innerText = data.toTeam === 'B' ? data.points : document.getElementById('scoreA').innerText;
-            document.getElementById('scoreB').innerText = data.toTeam === 'A' ? data.points : document.getElementById('scoreB').innerText;
-            
-            alert(`إجابة خاطئة! السؤال ينتقل للفريق ${data.toTeam} مع حذف خيار واحد`);
-            renderOptions(data.newOptions, data.toTeam === myTeam);
-            startTimer();
-        });
-
-        socket.on('roundResult', (data) => {
-            clearInterval(countdown);
-            playSound(data.isCorrect ? 'correct' : 'wrong');
-
-            const allBtns = document.querySelectorAll('.option-btn');
-            allBtns.forEach(btn => {
-                if (btn.innerText === data.correctAns) {
-                    btn.classList.add('correct-answer');
-                } else {
-                    btn.classList.add('wrong-answer');
-                }
-            });
-
-            document.getElementById('scoreA').innerText = data.team === 'A' ? data.points : document.getElementById('scoreA').innerText;
-            document.getElementById('scoreB').innerText = data.team === 'B' ? data.points : document.getElementById('scoreB').innerText;
-            
-            setTimeout(() => {
-                if(data.isTimeout) {
-                    alert(`انتهى الوقت نهائياً ❌\nالإجابة الصحيحة هي: ${data.correctAns}`);
-                } else {
-                    alert(`${data.name} جابها ${data.isCorrect ? 'صح ✅' : 'غلط ❌'}! الإجابة هي: ${data.correctAns}`);
-                }
-                if(isLeader) document.getElementById('leaderControls').classList.remove('hidden');
-            }, 2000);
-        });
-
-        socket.on('gameOver', (scores) => {
-            let winner = scores.pointsA > scores.pointsB ? "الفريق الأزرق 🏆" : (scores.pointsB > scores.pointsA ? "الفريق البرتقالي 🏆" : "تعادل 🤝");
-            alert(`انتهت اللعبة!\nالنتيجة النهائية:\nالأزرق: ${scores.pointsA}\nالبرتقالي: ${scores.pointsB}\nالفائز: ${winner}`);
-        });
-    </script>
-</body>
-</html>
 
 
 
