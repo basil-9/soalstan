@@ -117,7 +117,10 @@
         
         <div id="auction-area" style="text-align: center; width: 100%; margin-top: 5px;">
             <h2 id="hint-text" style="font-size: 22px; border: 2px dashed var(--gold); padding: 20px; border-radius: 20px;">بانتظار القائد...</h2>
-            <div id="leader-controls" style="display:none; margin-top: 10px;"><button class="btn-game" onclick="socket.emit('requestAuction')">سؤال جديد 🤖</button></div>
+            <div id="leader-controls" style="display:none; margin-top: 10px;">
+                <button class="btn-game" onclick="socket.emit('requestAuction')">سؤال جديد 🤖</button>
+                <button class="btn-game" style="border-color: var(--main); color: var(--main);" onclick="socket.emit('changeQuestion')">تغيير السؤال 🔄</button>
+            </div>
             <div id="bid-ui" style="display:none; margin-top: 10px;">
                 <p>المزاد: <span id="current-bid">0</span></p>
                 <button class="btn-game" onclick="bid()">زايد +10 🔨</button>
@@ -143,10 +146,8 @@
     function playSnd(s) { sounds[s].play().catch(()=>{}); }
 
     const socket = io();
-    // تمت إضافة currentWinner لمعرفة الفريق صاحب الدور الحالي
     let myInfo = {}, isLeader = false, currentQ = {}, timerInt, roomSettings = {}, currentWinner = "";
 
-    // دالة تحديث ساعة الوقت الفعلي
     function updateClock() {
         const now = new Date();
         const timeString = now.toLocaleTimeString('ar-SA', { hour12: false });
@@ -176,7 +177,7 @@
         myInfo = { name: n, room: r, team: t };
         
         document.getElementById('display-room-id').innerText = r;
-        document.getElementById('total-rounds').innerText = mr; // تحديث إجمالي الجولات
+        document.getElementById('total-rounds').innerText = mr; 
         
         document.getElementById('join-screen').style.display = 'none';
         document.getElementById('game-screen').style.display = 'flex';
@@ -203,7 +204,7 @@
         document.getElementById('current-round').innerText = d.roundNumber;
         document.getElementById('auction-area').style.display = 'block';
         document.getElementById('question-area').style.display = 'none'; 
-        document.getElementById('win-screen').style.display = 'none'; // إخفاء شاشة الفوز
+        document.getElementById('win-screen').style.display = 'none'; 
         document.getElementById('hint-text').innerText = "تلميح: " + d.hint;
         document.getElementById('current-bid').innerText = '0';
         if(isLeader) { document.getElementById('bid-ui').style.display = 'block'; document.getElementById('win-btn').style.display = 'none'; }
@@ -214,10 +215,14 @@
     socket.on('updateBid', d => { playSnd('bid'); document.getElementById('current-bid').innerText = d.amount; if(isLeader) document.getElementById('win-btn').style.display = 'inline-block'; });
 
     socket.on('revealQuestion', d => {
-        currentWinner = d.winningTeam; // تسجيل الفريق الذي عليه الدور الآن
+        currentWinner = d.winningTeam; 
         const content = document.getElementById('q-content'); content.innerHTML = '';
         
-        if (d.question.img) content.innerHTML += `<img src="${d.question.img}" class="q-image">`;
+        // تعديل حل الصور
+        const imgSrc = d.question.image || d.question.img;
+        if (imgSrc) {
+            content.innerHTML += `<img src="${imgSrc}" class="q-image">`;
+        }
         
         content.innerHTML += `<h1 style="font-size: 24px; color: var(--main); margin: 0;">${d.question.q}</h1>`;
         renderOptions(d.question.options);
@@ -231,7 +236,6 @@
         options.forEach(o => {
             const b = document.createElement('button'); b.className = 'btn-game'; b.innerText = o;
             
-            // قفل الزر إذا لم تكن القائد، أو إذا كان الدور للفريق الخصم
             if(!isLeader || myInfo.team !== currentWinner) {
                 b.disabled = true;
                 b.style.opacity = "0.5";
@@ -251,8 +255,7 @@
             document.getElementById('timer-bar').style.width = timeLeft + '%'; 
             if(timeLeft <= 0) {
                 clearInterval(timerInt); 
-                document.getElementById('options').innerHTML = '<h3 style="color:var(--red);">انتهى الوقت! ⏳</h3>';
-                // إذا انتهى الوقت وكان دور فريقي، أرسل إجابة خاطئة فوراً
+                // إرسال الإجابة كـ TIMEOUT
                 if(isLeader && myInfo.team === currentWinner) {
                     socket.emit('submitAnswer', { team: myInfo.team, answer: "TIMEOUT", name: myInfo.name });
                 }
@@ -262,12 +265,19 @@
 
     socket.on('passTurn', d => {
         playSnd('wrong');
-        currentWinner = d.toTeam; // نقل الدور رسمياً للفريق الخصم
+        currentWinner = d.toTeam; 
         
         const ov = document.getElementById('result-overlay');
         ov.className = 'animate__animated shakeX'; ov.style.display = 'block'; 
         ov.style.borderColor = 'var(--red)'; ov.style.color = 'var(--red)';
-        document.getElementById('result-status').innerText = "خطأ! ❌";
+        
+        // تعديل رسالة انتهاء الوقت
+        if (d.isTimeout) {
+            document.getElementById('result-status').innerText = "انتهى الوقت! ⏳";
+        } else {
+            document.getElementById('result-status').innerText = "خطأ! ❌";
+        }
+        
         document.getElementById('result-detail').innerText = `انتقلت الفرصة لفريق ${d.toTeam} مع حذف خيار!`;
         
         setTimeout(() => {
@@ -289,8 +299,15 @@
         ov.className = d.isCorrect ? 'animate__animated zoomIn' : 'animate__animated shakeX';
         ov.style.display = 'block'; ov.style.borderColor = d.isCorrect ? 'var(--green)' : 'var(--red)';
         ov.style.color = d.isCorrect ? 'var(--green)' : 'var(--red)';
-        document.getElementById('result-status').innerText = d.isCorrect ? "✅ إجابة صحيحة" : "❌ إجابة خاطئة";
-        document.getElementById('result-detail').innerText = d.isCorrect ? d.name + " كسب الفريق 50 نقطة" : "الإجابة الصحيحة: " + d.correctAns;
+        
+        if (d.isTimeout) {
+            document.getElementById('result-status').innerText = "انتهى الوقت للطرفين! ❌";
+            document.getElementById('result-detail').innerText = "الإجابة الصحيحة: " + d.correctAns;
+        } else {
+            document.getElementById('result-status').innerText = d.isCorrect ? "✅ إجابة صحيحة" : "❌ إجابة خاطئة";
+            document.getElementById('result-detail').innerText = d.isCorrect ? d.name + " كسب الفريق 50 نقطة" : "الإجابة الصحيحة: " + d.correctAns;
+        }
+
         setTimeout(() => { 
             ov.style.display = 'none'; 
             document.getElementById(`pts-${d.team}`).innerText = d.points; 
@@ -299,7 +316,6 @@
         }, 3000);
     });
 
-    // إضافة استجابة شاشة الفوز
     socket.on('gameOver', d => {
         document.getElementById('auction-area').style.display = 'none';
         document.getElementById('question-area').style.display = 'none';
@@ -313,6 +329,7 @@
 </script>
 </body>
 </html>
+
 
 
 
