@@ -118,8 +118,7 @@
         <div id="auction-area" style="text-align: center; width: 100%; margin-top: 5px;">
             <h2 id="hint-text" style="font-size: 22px; border: 2px dashed var(--gold); padding: 20px; border-radius: 20px;">بانتظار القائد...</h2>
             <div id="leader-controls" style="display:none; margin-top: 10px;">
-                <button class="btn-game" onclick="socket.emit('requestAuction')">سؤال جديد 🤖</button>
-                <button class="btn-game" style="border-color: var(--main); color: var(--main);" onclick="socket.emit('changeQuestion')">تغيير السؤال 🔄</button>
+                <button class="btn-game" onclick="socket.emit('changeQuestion')">سؤال جديد 🤖</button>
             </div>
             <div id="bid-ui" style="display:none; margin-top: 10px;">
                 <p>المزاد: <span id="current-bid">0</span></p>
@@ -218,11 +217,9 @@
         currentWinner = d.winningTeam; 
         const content = document.getElementById('q-content'); content.innerHTML = '';
         
-        // تعديل حل الصور
+        // 💡 التعديل: قراءة مسار الصورة مهما كان المكتوب في الأسئلة (img أو image)
         const imgSrc = d.question.image || d.question.img;
-        if (imgSrc) {
-            content.innerHTML += `<img src="${imgSrc}" class="q-image">`;
-        }
+        if (imgSrc) content.innerHTML += `<img src="${imgSrc}" class="q-image">`;
         
         content.innerHTML += `<h1 style="font-size: 24px; color: var(--main); margin: 0;">${d.question.q}</h1>`;
         renderOptions(d.question.options);
@@ -255,8 +252,10 @@
             document.getElementById('timer-bar').style.width = timeLeft + '%'; 
             if(timeLeft <= 0) {
                 clearInterval(timerInt); 
-                // إرسال الإجابة كـ TIMEOUT
-                if(isLeader && myInfo.team === currentWinner) {
+                document.getElementById('options').innerHTML = '<h3 style="color:var(--red);">انتهى الوقت! ⏳</h3>';
+                
+                // 💡 التعديل: إرسال الإجابة التلقائية عند انتهاء الوقت للفريق صاحب الدور فقط
+                if(myInfo.team === currentWinner) {
                     socket.emit('submitAnswer', { team: myInfo.team, answer: "TIMEOUT", name: myInfo.name });
                 }
             } 
@@ -270,16 +269,10 @@
         const ov = document.getElementById('result-overlay');
         ov.className = 'animate__animated shakeX'; ov.style.display = 'block'; 
         ov.style.borderColor = 'var(--red)'; ov.style.color = 'var(--red)';
-        
-        // تعديل رسالة انتهاء الوقت
-        if (d.isTimeout) {
-            document.getElementById('result-status').innerText = "انتهى الوقت! ⏳";
-        } else {
-            document.getElementById('result-status').innerText = "خطأ! ❌";
-        }
-        
+        document.getElementById('result-status').innerText = "خطأ! ❌";
         document.getElementById('result-detail').innerText = `انتقلت الفرصة لفريق ${d.toTeam} مع حذف خيار!`;
         
+        // 💡 التعديل: استرجاع الأزرار وتمريرها للفريق الخصم عند انتهاء الوقت بدل تعليق الشاشة
         setTimeout(() => {
             ov.style.display = 'none';
             if (myInfo.team === d.toTeam) { 
@@ -299,15 +292,9 @@
         ov.className = d.isCorrect ? 'animate__animated zoomIn' : 'animate__animated shakeX';
         ov.style.display = 'block'; ov.style.borderColor = d.isCorrect ? 'var(--green)' : 'var(--red)';
         ov.style.color = d.isCorrect ? 'var(--green)' : 'var(--red)';
+        document.getElementById('result-status').innerText = d.isCorrect ? "✅ إجابة صحيحة" : "❌ إجابة خاطئة";
+        document.getElementById('result-detail').innerText = d.isCorrect ? d.name + " كسب الفريق 50 نقطة" : "الإجابة الصحيحة: " + d.correctAns;
         
-        if (d.isTimeout) {
-            document.getElementById('result-status').innerText = "انتهى الوقت للطرفين! ❌";
-            document.getElementById('result-detail').innerText = "الإجابة الصحيحة: " + d.correctAns;
-        } else {
-            document.getElementById('result-status').innerText = d.isCorrect ? "✅ إجابة صحيحة" : "❌ إجابة خاطئة";
-            document.getElementById('result-detail').innerText = d.isCorrect ? d.name + " كسب الفريق 50 نقطة" : "الإجابة الصحيحة: " + d.correctAns;
-        }
-
         setTimeout(() => { 
             ov.style.display = 'none'; 
             document.getElementById(`pts-${d.team}`).innerText = d.points; 
@@ -329,6 +316,7 @@
 </script>
 </body>
 </html>
+
 
 
 
