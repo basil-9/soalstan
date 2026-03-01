@@ -39,7 +39,8 @@ io.on('connection', (socket) => {
                 settings: settings || { roundTime: 30, maxRounds: 10 },
                 currentQuestion: null, 
                 currentRound: 0,
-                turnTaken: false
+                turnTaken: false,
+                firstTeam: null // لحل مشكلة خصم الوقت مرتين
             };
         } else if (team && !roomsData[roomID].teams[team].leader) {
             roomsData[roomID].teams[team].leader = socket.id;
@@ -54,7 +55,6 @@ io.on('connection', (socket) => {
         });
     });
 
-    // 1. طلب جولة جديدة (تزيد الجولة)
     socket.on('requestAuction', () => {
         const room = roomsData[socket.currentRoom];
         if(!room || questionBank.length === 0) return;
@@ -67,10 +67,11 @@ io.on('connection', (socket) => {
         const q = questionBank[Math.floor(Math.random() * questionBank.length)];
         room.currentQuestion = q; 
         room.turnTaken = false;
+        room.firstTeam = null;
         io.to(socket.currentRoom).emit('startAuction', { hint: q.hint, fullQuestion: q, roundNumber: room.currentRound });
     });
 
-    // 2. تغيير السؤال (لا تزيد الجولة)
+    // 💡 التعديل الأول: تغيير السؤال في نفس الجولة بدون زيادة العداد
     socket.on('changeQuestion', () => {
         const room = roomsData[socket.currentRoom];
         if(!room || questionBank.length === 0) return;
@@ -78,23 +79,29 @@ io.on('connection', (socket) => {
         const q = questionBank[Math.floor(Math.random() * questionBank.length)];
         room.currentQuestion = q; 
         room.turnTaken = false;
+        room.firstTeam = null;
         io.to(socket.currentRoom).emit('startAuction', { hint: q.hint, fullQuestion: q, roundNumber: room.currentRound });
     });
 
     socket.on('submitAnswer', (data) => {
         const room = roomsData[socket.currentRoom];
-        if(!room) return;
+        if(!room || !room.currentQuestion) return;
         
-        // 3. معالجة انتهاء الوقت كانتقال للفريق الآخر
+        // 💡 حماية: منع الفريق من الإجابة مرتين أو سحب نقاط مضاعفة عند انتهاء الوقت
+        if (room.turnTaken && data.team === room.firstTeam) return;
+
         if (data.answer === "TIMEOUT") {
             room.teams[data.team].points -= 30;
             if (!room.turnTaken) {
                 room.turnTaken = true;
+                room.firstTeam = data.team;
                 const wrong = room.currentQuestion.options.filter(o => o !== room.currentQuestion.a);
                 const newOptions = [room.currentQuestion.a, wrong[0], wrong[1]].sort(() => Math.random() - 0.5);
-                io.to(socket.currentRoom).emit('passTurn', { toTeam: data.team === 'A' ? 'B' : 'A', newOptions, points: room.teams[data.team].points, isTimeout: true });
+                io.to(socket.currentRoom).emit('passTurn', { toTeam: data.team === 'A' ? 'B' : 'A', newOptions, points: room.teams[data.team].points });
             } else {
-                io.to(socket.currentRoom).emit('roundResult', { isCorrect: false, team: data.team, points: room.teams[data.team].points, name: data.name, correctAns: room.currentQuestion.a, isTimeout: true });
+                const correctAns = room.currentQuestion.a;
+                room.currentQuestion = null; // قفل السؤال تماماً
+                io.to(socket.currentRoom).emit('roundResult', { isCorrect: false, team: data.team, points: room.teams[data.team].points, name: data.name, correctAns: correctAns });
             }
             return;
         }
@@ -102,16 +109,21 @@ io.on('connection', (socket) => {
         const isCorrect = data.answer === room.currentQuestion.a;
         if (isCorrect) {
             room.teams[data.team].points += 50;
-            io.to(socket.currentRoom).emit('roundResult', { isCorrect: true, team: data.team, points: room.teams[data.team].points, name: data.name, correctAns: room.currentQuestion.a });
+            const correctAns = room.currentQuestion.a;
+            room.currentQuestion = null; // قفل السؤال
+            io.to(socket.currentRoom).emit('roundResult', { isCorrect: true, team: data.team, points: room.teams[data.team].points, name: data.name, correctAns: correctAns });
         } else {
             room.teams[data.team].points -= 30;
             if (!room.turnTaken) {
                 room.turnTaken = true;
+                room.firstTeam = data.team;
                 const wrong = room.currentQuestion.options.filter(o => o !== room.currentQuestion.a);
                 const newOptions = [room.currentQuestion.a, wrong[0], wrong[1]].sort(() => Math.random() - 0.5);
                 io.to(socket.currentRoom).emit('passTurn', { toTeam: data.team === 'A' ? 'B' : 'A', newOptions, points: room.teams[data.team].points });
             } else {
-                io.to(socket.currentRoom).emit('roundResult', { isCorrect: false, team: data.team, points: room.teams[data.team].points, name: data.name, correctAns: room.currentQuestion.a });
+                const correctAns = room.currentQuestion.a;
+                room.currentQuestion = null; // قفل السؤال
+                io.to(socket.currentRoom).emit('roundResult', { isCorrect: false, team: data.team, points: room.teams[data.team].points, name: data.name, correctAns: correctAns });
             }
         }
     });
