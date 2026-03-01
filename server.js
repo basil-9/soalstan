@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
-const fs = require('fs'); 
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -11,159 +11,108 @@ const io = new Server(server, { cors: { origin: "*" } });
 app.use(express.static(__dirname)); 
 
 let questionBank = [];
+
+// نظام الحماية المطور: بيعلمنا وين الغلط بالضبط
 try {
-    questionBank = JSON.parse(fs.readFileSync(path.join(__dirname, 'questions.json'), 'utf8'));
-} catch (err) {
-    console.error("خطأ في قراءة ملف الأسئلة:", err);
+    const data = fs.readFileSync(path.join(__dirname, 'questions.json'), 'utf8');
+    questionBank = JSON.parse(data);
+    console.log(`✅ كفو! تم تحميل ${questionBank.length} سؤال بنجاح!`);
+} catch (e) {
+    console.error("🚨🚨🚨 فيه غلط بملف الأسئلة!");
+    console.error("المشكلة هي: ", e.message); 
+    questionBank = [{
+        "type": "text", "hint": "تنبيه للقائد", "q": "فيه مشكلة بالملف (فاصلة ناقصة)، شيك على الـ Logs في Render عشان تعرف وينها.", "options": ["علم", "جاري التصحيح"], "a": "علم"
+    }];
 }
+
+// مسار إضافي للتأكد من الأسئلة في المتصفح
+app.get('/check-questions', (req, res) => {
+    res.json({ total: questionBank.length, first: questionBank[0] });
+});
 
 let roomsData = {};
 
 io.on('connection', (socket) => {
-    
     socket.on('joinRoom', (data) => {
-        const { room, name, team, settings } = data; 
-        const roomID = room;
-        
+        const { roomID, settings, team } = data;
         socket.join(roomID);
         socket.currentRoom = roomID;
 
         if (!roomsData[roomID]) {
             roomsData[roomID] = {
-                teams: { 
-                    'أ': { points: 100, leader: socket.id }, 
-                    'ب': { points: 100, leader: null } 
-                },
+                teams: { 'A': { points: 100, leader: socket.id }, 'B': { points: 100, leader: null } },
                 settings: settings || { roundTime: 30, maxRounds: 10 },
-                currentQuestion: null,
-                turnTaken: false,
-                currentRound: 0, // بداية الجولات
-                questionAnswered: false // للتحقق من أن السؤال تم الإجابة عليه في الجولة
+                currentQuestion: null, 
+                currentRound: 0,
+                turnTaken: false
             };
-        } else if (!roomsData[roomID].teams[team].leader) {
+        } else if (team && !roomsData[roomID].teams[team].leader) {
             roomsData[roomID].teams[team].leader = socket.id;
         }
 
-        const roomData = roomsData[roomID];
-        
+        const room = roomsData[roomID];
         socket.emit('init', { 
-            pointsA: roomData.teams['أ'].points, 
-            pointsB: roomData.teams['ب'].points, 
-            isLeader: socket.id === roomData.teams[team].leader, 
-            settings: roomData.settings,
-            currentRound: roomData.currentRound // إرسال رقم الجولة
+            pointsA: room.teams['A'].points, 
+            pointsB: room.teams['B'].points, 
+            isLeader: socket.id === room.teams['A'].leader || socket.id === room.teams['B'].leader, 
+            settings: room.settings 
         });
     });
 
-    // --- التعديل الأول هنا: تغيير السؤال لا يزيد الجولة ---
     socket.on('requestAuction', () => {
         const room = roomsData[socket.currentRoom];
-        if (!room) return;
+        if(!room || questionBank.length === 0) return;
 
+        room.currentRound++;
+        if (room.currentRound > room.settings.maxRounds) {
+            return io.to(socket.currentRoom).emit('gameOver', { pointsA: room.teams['A'].points, pointsB: room.teams['B'].points });
+        }
+
+        // اختيار سؤال عشوائي
         const q = questionBank[Math.floor(Math.random() * questionBank.length)];
-        room.currentQuestion = q;
+        room.currentQuestion = q; 
         room.turnTaken = false;
-        room.questionAnswered = false; // تصفير الحالة للسؤال الجديد
-        
-        io.to(socket.currentRoom).emit('startAuction', { 
-            hint: q.hint, 
-            fullQuestion: q 
-        });
+        io.to(socket.currentRoom).emit('startAuction', { hint: q.hint, fullQuestion: q, roundNumber: room.currentRound });
     });
 
-    // معالجة الإجابات
     socket.on('submitAnswer', (data) => {
         const room = roomsData[socket.currentRoom];
-        if (!room) return;
-
-        const isCorrect = data.answer === room.currentQuestion.a;
+        if(!room) return;
         
-        if (isCorrect) {
-            room.teams[data.team].points += 50;
-            room.questionAnswered = true; // تم الإجابة صح
-            room.currentRound++; // زيادة الجولة فقط عند الإجابة (صح أو خطأ نهائي)
-
-            io.to(socket.currentRoom).emit('roundResult', { 
-                isCorrect: true, 
-                team: data.team, 
-                points: room.teams[data.team].points, 
-                name: data.name, 
-                correctAns: room.currentQuestion.a,
-                currentRound: room.currentRound
-            });
-        } else {
+        if (data.answer === "TIMEOUT") {
             room.teams[data.team].points -= 30;
-            
             if (!room.turnTaken) {
                 room.turnTaken = true;
-                const wrongOptions = room.currentQuestion.options.filter(o => o !== room.currentQuestion.a);
-                const newOptions = [room.currentQuestion.a, wrongOptions[0], wrongOptions[1]].sort(() => Math.random() - 0.5);
-                
-                io.to(socket.currentRoom).emit('passTurn', { 
-                    toTeam: data.team === 'أ' ? 'ب' : 'أ', 
-                    newOptions: newOptions, 
-                    points: room.teams[data.team].points 
-                });
-            } else {
-                room.questionAnswered = true; // كلا الفريقين أخطأوا
-                room.currentRound++; // زيادة الجولة
+                const wrong = room.currentQuestion.options.filter(o => o !== room.currentQuestion.a);
+                const newOptions = [room.currentQuestion.a, wrong[0], wrong[1]].sort(() => Math.random() - 0.5);
+                io.to(socket.currentRoom).emit('passTurn', { toTeam: data.team === 'A' ? 'B' : 'A', newOptions, points: room.teams[data.team].points });
+            }
+            return;
+        }
 
-                io.to(socket.currentRoom).emit('roundResult', { 
-                    isCorrect: false, 
-                    team: data.team, 
-                    points: room.teams[data.team].points, 
-                    name: data.name, 
-                    correctAns: room.currentQuestion.a,
-                    currentRound: room.currentRound
-                });
+        const isCorrect = data.answer === room.currentQuestion.a;
+        if (isCorrect) {
+            room.teams[data.team].points += 50;
+            io.to(socket.currentRoom).emit('roundResult', { isCorrect: true, team: data.team, points: room.teams[data.team].points, name: data.name, correctAns: room.currentQuestion.a });
+        } else {
+            room.teams[data.team].points -= 30;
+            if (!room.turnTaken) {
+                room.turnTaken = true;
+                const wrong = room.currentQuestion.options.filter(o => o !== room.currentQuestion.a);
+                const newOptions = [room.currentQuestion.a, wrong[0], wrong[1]].sort(() => Math.random() - 0.5);
+                io.to(socket.currentRoom).emit('passTurn', { toTeam: data.team === 'A' ? 'B' : 'A', newOptions, points: room.teams[data.team].points });
+            } else {
+                io.to(socket.currentRoom).emit('roundResult', { isCorrect: false, team: data.team, points: room.teams[data.team].points, name: data.name, correctAns: room.currentQuestion.a });
             }
         }
     });
 
-    // --- التعديل الثاني: معالجة انتهاء الوقت كإجابة خاطئة ---
-    socket.on('timeUp', (data) => {
-        const room = roomsData[socket.currentRoom];
-        if (!room || room.questionAnswered) return; // منع التكرار إذا كان قد تم الإجابة
-
-        room.teams[data.team].points -= 30; // خصم النقاط
-
-        if (!room.turnTaken) {
-            room.turnTaken = true;
-            const wrongOptions = room.currentQuestion.options.filter(o => o !== room.currentQuestion.a);
-            const newOptions = [room.currentQuestion.a, wrongOptions[0], wrongOptions[1]].sort(() => Math.random() - 0.5);
-            
-            io.to(socket.currentRoom).emit('passTurn', { 
-                toTeam: data.team === 'أ' ? 'ب' : 'أ', 
-                newOptions: newOptions, 
-                points: room.teams[data.team].points 
-            });
-        } else {
-            room.questionAnswered = true;
-            room.currentRound++;
-
-            io.to(socket.currentRoom).emit('roundResult', { 
-                isCorrect: false, 
-                team: data.team, 
-                points: room.teams[data.team].points, 
-                name: "الوقت انتهى", 
-                correctAns: room.currentQuestion.a,
-                currentRound: room.currentRound
-            });
-        }
-    });
-
-    socket.on('winAuction', (d) => io.to(socket.currentRoom).emit('revealQuestion', d));
     socket.on('placeBid', (d) => io.to(socket.currentRoom).emit('updateBid', d));
-
-    socket.on('disconnect', () => {
-        console.log('لاعب غادر الغرفة');
-    });
+    socket.on('winAuction', (d) => io.to(socket.currentRoom).emit('revealQuestion', d));
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`سيرفر لعبة سؤالستان يعمل على: http://localhost:${PORT}`);
-});
+server.listen(PORT, () => console.log('🚀 Server running on port ' + PORT));
 
 
 
