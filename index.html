@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>سؤالستان - النسخة الاحترافية الكاملة</title>
+    <title>إقليم-سؤالستان</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <style>
         :root { --main: #a855f7; --gold: #facc15; --red: #ef4444; --green: #22c55e; }
@@ -54,7 +54,7 @@
             <input type="text" id="room-id" class="input-box" placeholder="كود الغرفة">
             <button class="btn-game" style="width: 50px; margin-top: 5px; padding: 5px;" onclick="generateCode()">🎲</button>
         </div>
-
+        
         <div style="display: flex; gap: 5px; margin-top: 5px;">
             <input type="text" id="team-a-name" class="input-box" placeholder="اسم فريق A (اختياري)">
             <input type="text" id="team-b-name" class="input-box" placeholder="اسم فريق B (اختياري)">
@@ -88,10 +88,10 @@
     <div class="how-to-play">
         <h3 style="color: var(--gold); margin: 0 0 10px 0; font-size: 16px;">كيف تلعب؟ 📖</h3>
         <ul>
-            <li>تسوي غرفة أو تنضم بكود.</li>
-            <li>زايد على التلميح عشان تشتري السؤال.</li>
-            <li>الصح يعطيك 50 نقطة والخطأ يخصم منك 30.</li>
-            <li>اذا اخطيت؟ الخصم تجيه فرصة بحذف إجابة.</li>
+            <li>أنشئ غرفة أو انضم بكود.</li>
+            <li>زايد على التلميح لشراء السؤال.</li>
+            <li>الصح يكسبك 50 نقطة والخطأ يخصم 30.</li>
+            <li>عند الخطأ، يحصل الخصم على فرصة بحذف إجابة.</li>
         </ul>
     </div>
 </div>
@@ -125,12 +125,10 @@
         
         <div id="auction-area" style="text-align: center; width: 100%; margin-top: 5px;">
             <h2 id="hint-text" style="font-size: 22px; border: 2px dashed var(--gold); padding: 20px; border-radius: 20px;">بانتظار القائد...</h2>
-            
             <div id="leader-controls" style="display:none; margin-top: 10px; gap: 5px; justify-content: center;">
                 <button class="btn-game" style="width: 48%;" onclick="socket.emit('requestAuction')">سؤال جديد 🤖</button>
-                <button class="btn-game" style="width: 48%; border-color: #9ca3af; color: #9ca3af;" onclick="socket.emit('changeQuestion')">تغيير السؤال 🔄</button>
+                <button class="btn-game" style="width: 48%; border-color: #6b7280; color: #9ca3af;" onclick="socket.emit('changeQuestion')">تغيير السؤال 🔄</button>
             </div>
-            
             <div id="bid-ui" style="display:none; margin-top: 10px;">
                 <p>المزاد: <span id="current-bid">0</span></p>
                 <button class="btn-game" onclick="bid()">زايد +10 🔨</button>
@@ -184,7 +182,6 @@
         const mt = parseInt(document.getElementById('set-time').value);
         const mr = parseInt(document.getElementById('set-rounds').value);
         
-        // التقاط أسماء الفرق
         const teamAName = document.getElementById('team-a-name').value || "فريق A";
         const teamBName = document.getElementById('team-b-name').value || "فريق B";
 
@@ -203,6 +200,7 @@
 
     function exitGame() {
         playSnd('click');
+        socket.emit('leaveRoom');
         document.getElementById('game-screen').style.display = 'none';
         document.getElementById('exit-btn').style.display = 'none';
         document.getElementById('join-screen').style.display = 'flex';
@@ -212,7 +210,6 @@
         isLeader = d.isLeader; 
         roomSettings = d.settings;
         
-        // عرض الأسماء المخصصة للفرق
         document.getElementById('display-name-A').innerText = d.teamAName;
         document.getElementById('display-name-B').innerText = d.teamBName;
         document.getElementById('my-team-display').innerText = "فريقك: " + (myInfo.team === 'A' ? d.teamAName : d.teamBName);
@@ -220,7 +217,15 @@
         if (isLeader) { 
             document.getElementById('leader-tag').style.display = 'block'; 
             document.getElementById('leader-controls').style.display = 'flex'; 
+        } else {
+            document.getElementById('leader-tag').style.display = 'none'; 
+            document.getElementById('leader-controls').style.display = 'none'; 
         }
+        document.getElementById('pts-A').innerText = d.pointsA; 
+        document.getElementById('pts-B').innerText = d.pointsB;
+    });
+
+    socket.on('updateScores', d => {
         document.getElementById('pts-A').innerText = d.pointsA; 
         document.getElementById('pts-B').innerText = d.pointsB;
     });
@@ -244,7 +249,6 @@
         currentWinner = d.winningTeam; 
         const content = document.getElementById('q-content'); content.innerHTML = '';
         
-        // الإصلاح الجذري للصور: يقرأ image أو img
         const imgSrc = d.question.image || d.question.img;
         if (imgSrc) content.innerHTML += `<img src="${imgSrc}" class="q-image">`;
         
@@ -279,7 +283,8 @@
             document.getElementById('timer-bar').style.width = timeLeft + '%'; 
             if(timeLeft <= 0) {
                 clearInterval(timerInt); 
-                // إرسال الإجابة كـ TIMEOUT (فقط للفريق اللي دوره)
+                document.getElementById('options').innerHTML = '<h3 style="color:var(--red);">انتهى الوقت! ⏳</h3>';
+                
                 if(isLeader && myInfo.team === currentWinner) {
                     socket.emit('submitAnswer', { team: myInfo.team, answer: "TIMEOUT", name: myInfo.name });
                 }
@@ -295,8 +300,7 @@
         ov.className = 'animate__animated shakeX'; ov.style.display = 'block'; 
         ov.style.borderColor = 'var(--red)'; ov.style.color = 'var(--red)';
         
-        // التعديل: رسالة للتايم آوت ورسالة للخطأ
-        if(d.isTimeout) {
+        if (d.isTimeout) {
             document.getElementById('result-status').innerText = "انتهى الوقت! ⏳";
         } else {
             document.getElementById('result-status').innerText = "خطأ! ❌";
@@ -334,7 +338,6 @@
 
         setTimeout(() => { 
             ov.style.display = 'none'; 
-            document.getElementById(`pts-${d.team}`).innerText = d.points; 
             document.getElementById('question-area').style.display = 'none'; 
             document.getElementById('auction-area').style.display = 'block'; 
         }, 3000);
@@ -353,6 +356,7 @@
 </script>
 </body>
 </html>
+
 
 
 
