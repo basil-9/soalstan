@@ -25,7 +25,6 @@ try {
 
 let roomsData = {};
 
-// 1. بدء جولة جديدة (مرحلة التضليل)
 function startNewRound(rID) {
     const room = roomsData[rID];
     if(!room || questionBank.length === 0) return;
@@ -39,60 +38,65 @@ function startNewRound(rID) {
 
     const q = questionBank[Math.floor(Math.random() * questionBank.length)];
     room.currentQuestion = q; 
-    room.bluffs = {}; // لحفظ الإجابات المضللة
-    room.votes = {};  // لحفظ التصويتات
+    room.bluffs = {}; 
+    room.votes = {};  
     room.phase = 'bluffing'; 
 
     io.to(rID).emit('startBluffPhase', { fullQuestion: q, roundNumber: room.currentRound });
 }
 
-// 2. الانتقال لمرحلة التصويت (بعد ما الكل يكتب تضليله)
 function startVotingPhase(rID, room) {
     room.phase = 'voting';
     let correctAns = room.currentQuestion.a;
-    
-    // جمع الإجابة الصحيحة مع كل التضليلات (مع منع التكرار)
     let allOptions = [correctAns];
+
+    // 1. إضافة تضليلات اللاعبين
     for (let pid in room.bluffs) {
         let b = room.bluffs[pid].trim();
-        // إذا كتب إجابة صحيحة بالصدفة ما نكررها، أو لو اثنين كتبوا نفس التضليل
-        if (b && !allOptions.includes(b)) {
+        if (b && b !== correctAns && !allOptions.includes(b)) {
             allOptions.push(b);
         }
     }
 
-    // خلط الخيارات عشان ما ينعرف وين الصح
+    // 2. إكمال الخيارات من السؤال الأصلي عشان ما تطلع الشاشة فاضية
+    if (room.currentQuestion.options) {
+        let originalOpts = room.currentQuestion.options.sort(() => Math.random() - 0.5);
+        for (let opt of originalOpts) {
+            // نبي نوصل الخيارات لـ 4 على الأقل
+            if (allOptions.length < 4 && !allOptions.includes(opt)) {
+                allOptions.push(opt);
+            }
+        }
+    }
+
+    // خلط الأزرار
     allOptions.sort(() => Math.random() - 0.5);
 
     io.to(rID).emit('startVotingPhase', { options: allOptions });
 }
 
-// 3. تقييم الجولة (توزيع النقاط)
 function evaluateRound(rID, room) {
     room.phase = 'results';
     let correctAns = room.currentQuestion.a;
-    let results = {}; // لتسجيل من اختار ماذا ومن خدع من
+    let results = {}; 
 
-    // تهيئة مصفوفة النتائج لكل لاعب
     for (let pid in room.players) {
         results[pid] = { name: room.players[pid].name, pointsGained: 0, votedFor: room.votes[pid], tricked: [] };
     }
 
-    // حساب النقاط
+    // توزيع النقاط (2 للصح، 1 للتضليل)
     for (let voterId in room.votes) {
         let vote = room.votes[voterId];
         
         if (vote === correctAns) {
-            // اللي يجاوب صح ياخذ نقطتين
             room.players[voterId].points += 2;
             results[voterId].pointsGained += 2;
-        } else if (vote !== "TIMEOUT") {
-            // دور مين صاحب هذي الإجابة المضللة عشان نعطيه نقطة
+        } else if (vote && vote !== "TIMEOUT") {
             for (let blufferId in room.bluffs) {
                 if (blufferId !== voterId && room.bluffs[blufferId] === vote) {
                     room.players[blufferId].points += 1;
                     results[blufferId].pointsGained += 1;
-                    results[blufferId].tricked.push(room.players[voterId].name); // حفظ اسم الضحية
+                    results[blufferId].tricked.push(room.players[voterId].name); 
                 }
             }
         }
@@ -102,8 +106,8 @@ function evaluateRound(rID, room) {
     io.to(rID).emit('updateState', { players: room.players, leader: room.leader });
     room.currentQuestion = null;
 
-    // انتقال تلقائي بعد 6 ثواني (عشان يقرأون مين خدع مين وتصير ضحك)
-    setTimeout(() => { if (roomsData[rID] && !roomsData[rID].currentQuestion) startNewRound(rID); }, 6000);
+    // حل مشكلة التعليق: السيرفر ينتظر 7 ثواني ثم يبدأ الجولة براحته
+    setTimeout(() => { if (roomsData[rID] && !roomsData[rID].currentQuestion) startNewRound(rID); }, 7000);
 }
 
 io.on('connection', (socket) => {
@@ -133,24 +137,21 @@ io.on('connection', (socket) => {
         const room = roomsData[roomID];
         if (!room.leader || !room.players[room.leader]) room.leader = socket.id;
 
-        // النقاط تبدأ من 0 في النظام الجديد
         room.players[socket.id] = { name: name || 'لاعب', points: 0 };
         io.to(roomID).emit('updateState', { players: room.players, leader: room.leader, settings: room.settings });
     });
 
-    // القائد يضغط بدء اللعبة
     socket.on('requestGameStart', () => {
         const rID = socket.currentRoom;
         if (rID && roomsData[rID] && roomsData[rID].leader === socket.id) startNewRound(rID);
     });
 
-    // استقبال الإجابة المضللة
     socket.on('submitBluff', (data) => {
         const rID = socket.currentRoom;
         const room = roomsData[rID];
         if(!room || room.phase !== 'bluffing') return;
 
-        room.bluffs[socket.id] = data.bluff || "تأخر في الإجابة " + Math.floor(Math.random()*100);
+        room.bluffs[socket.id] = data.bluff || "تأخر في الإجابة";
         io.to(rID).emit('playerActed', { id: socket.id, action: 'bluffed' });
 
         if (Object.keys(room.bluffs).length === Object.keys(room.players).length) {
@@ -158,19 +159,17 @@ io.on('connection', (socket) => {
         }
     });
 
-    // التايم أوت لمرحلة التضليل
     socket.on('timeoutBluffAll', () => {
         const rID = socket.currentRoom;
         const room = roomsData[rID];
         if(!room || room.phase !== 'bluffing') return;
 
         for(let pid in room.players) {
-            if (!room.bluffs[pid]) room.bluffs[pid] = "إجابة عشوائية " + Math.floor(Math.random()*1000);
+            if (!room.bluffs[pid]) room.bluffs[pid] = "تأخر في الإجابة";
         }
         startVotingPhase(rID, room);
     });
 
-    // استقبال التصويت
     socket.on('submitVote', (data) => {
         const rID = socket.currentRoom;
         const room = roomsData[rID];
@@ -184,7 +183,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // التايم أوت لمرحلة التصويت
     socket.on('timeoutVoteAll', () => {
         const rID = socket.currentRoom;
         const room = roomsData[rID];
@@ -217,7 +215,8 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log('🚀 Fibbage/Bluff Server is running!'));
+server.listen(PORT, () => console.log('🚀 Server is running!'));
+
 
 
 
