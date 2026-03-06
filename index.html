@@ -35,12 +35,21 @@
         #players-scores { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; width: 100%; font-size: 14px; margin-top: 5px; }
         .score-pill { background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 8px; font-weight: bold; border: 1px solid rgba(255,255,255,0.2); }
 
-        .avatar-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; max-height: 140px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 15px; border: 1px solid rgba(168, 85, 247, 0.4); }
+        .avatar-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; max-height: 120px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 15px; border: 1px solid rgba(168, 85, 247, 0.4); }
         .avatar-item { width: 50px; height: 50px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: 0.2s; background: rgba(255,255,255,0.05); }
         .avatar-item:hover { transform: scale(1.1); }
         .avatar-item.selected { border-color: var(--gold); transform: scale(1.1); box-shadow: 0 0 10px var(--gold); background: rgba(250, 204, 21, 0.2); }
-        .avatar-grid::-webkit-scrollbar { width: 6px; }
-        .avatar-grid::-webkit-scrollbar-thumb { background: var(--main); border-radius: 10px; }
+        
+        /* 🚀 تصميم شبكة التصنيفات (زي الصورة بالضبط) */
+        .cat-wrapper { margin-top: 15px; width: 100%; max-height: 140px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 15px; border: 1px solid var(--main); }
+        .cat-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+        .cat-btn { background: #1d4ed8; color: white; border: 2px solid #1e3a8a; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .cat-btn:hover { transform: scale(1.05); }
+        .cat-btn.selected { background: var(--main); border-color: var(--gold); box-shadow: 0 0 8px var(--gold); }
+        .cat-btn::before { content: '✨'; font-size: 10px; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: var(--main); border-radius: 10px; }
 
         .podium-container { display: flex; align-items: flex-end; justify-content: center; gap: 15px; margin-top: 30px; margin-bottom: 20px; }
         .podium-rank { display: flex; flex-direction: column; align-items: center; }
@@ -80,6 +89,16 @@
             <div id="avatar-selection" class="avatar-grid"></div>
         </div>
 
+        <div style="margin-top: 15px; width: 100%;">
+            <label style="font-size:13px; color: var(--gold); font-weight: bold;">اختر التصنيفات (للقائد فقط) 📚</label>
+            <div class="cat-wrapper">
+                <div id="categories-grid" class="cat-grid">
+                    <span style="font-size:12px; color:#9ca3af;">جاري تحميل التصنيفات...</span>
+                </div>
+            </div>
+            <div style="font-size:10px; color:#9ca3af; text-align:center; margin-top:3px;">(إذا لم تختر شيء، ستلعب بجميع الأسئلة)</div>
+        </div>
+
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
             <div>
                 <label style="font-size:11px; color: var(--gold);">وقت الجولة</label>
@@ -107,15 +126,6 @@
         <button class="btn-game" style="background:var(--main); color:white; border:none; margin-top: 20px;" onclick="joinGame()">دخول اللعبة 🚀</button>
     </div>
 
-    <div class="how-to-play">
-        <h3 style="color: var(--gold); margin: 0 0 10px 0; font-size: 16px;">كيف تلعب؟ (سؤالستان) 📖</h3>
-        <ul>
-            <li>يطلع لك السؤال، اكتب إجابة تخدع اللي معاك بالغرفة عشان تجيك نقطة.</li>
-            <li>بعد ما تطلع لك الاختيارات اختار الإجابة الصح!</li>
-            <li>الجواب الصحيح تاخذ عليه نقطتين، اللي يختار جوابك تاخذ نقطة.</li>
-            <li>كيف ينضمون أخوياك؟ ترسل لهم الكود اللي جنب النرد!</li>
-        </ul>
-    </div>
 </div>
 
 <div id="game-screen" style="display: none; width: 100vw; justify-content: center;">
@@ -187,6 +197,7 @@
     let myInfo = {}, isLeader = false, timerInt, roomSettings = {};
     let allPlayers = {}, myBluffText = "", currentCorrectAnswer = "";
     let selectedAvatarUrl = ""; 
+    let selectedCategories = []; // 🚀 حفظ التصنيفات اللي يختارها اللاعب
 
     function normalizeArabic(text) {
         if (!text) return "";
@@ -196,6 +207,43 @@
                    .replace(/[\u064B-\u065F]/g, '')
                    .trim();
     }
+
+    // 🚀 جلب التصنيفات من ملف الأسئلة وبناء الشبكة
+    fetch('questions.json')
+        .then(res => res.json())
+        .then(data => {
+            let cats = new Set();
+            data.forEach(q => {
+                let c = q.category || q.hint || q.type;
+                if(c && c !== 'text' && c !== 'image') cats.add(c);
+            });
+            let catArray = Array.from(cats);
+            const grid = document.getElementById('categories-grid');
+            grid.innerHTML = '';
+            
+            if(catArray.length > 0) {
+                catArray.forEach(cat => {
+                    let btn = document.createElement('div');
+                    btn.className = 'cat-btn';
+                    btn.innerText = cat;
+                    btn.onclick = () => {
+                        playSnd('click');
+                        btn.classList.toggle('selected');
+                        if(selectedCategories.includes(cat)) {
+                            selectedCategories = selectedCategories.filter(c => c !== cat);
+                        } else {
+                            selectedCategories.push(cat);
+                        }
+                    };
+                    grid.appendChild(btn);
+                });
+            } else {
+                grid.innerHTML = '<span style="font-size:12px; color:#9ca3af;">لا توجد تصنيفات محددة في ملف الأسئلة</span>';
+            }
+        })
+        .catch(e => {
+            document.getElementById('categories-grid').innerHTML = '<span style="font-size:12px; color:#ef4444;">خطأ في تحميل التصنيفات</span>';
+        });
 
     function generateAvatars() {
         const styles = ['bottts', 'adventurer', 'fun-emoji', 'micah'];
@@ -255,7 +303,13 @@
         document.getElementById('game-screen').style.display = 'flex';
         document.getElementById('exit-btn').style.display = 'block'; 
         
-        socket.emit('joinRoom', { roomID: r, name: n, avatar: selectedAvatarUrl, settings: { roundTime: mt, maxRounds: mr } });
+        // 🚀 إرسال التصنيفات المختارة مع إعدادات الغرفة
+        socket.emit('joinRoom', { 
+            roomID: r, 
+            name: n, 
+            avatar: selectedAvatarUrl, 
+            settings: { roundTime: mt, maxRounds: mr, categories: selectedCategories } 
+        });
     }
 
     function exitGame() {
@@ -324,7 +378,6 @@
         document.getElementById('current-round').innerText = d.roundNumber;
         document.getElementById('status-text').innerHTML = '';
         
-        // 🚀 إظهار أو إخفاء تنبيه الجولة الحاسمة
         document.getElementById('decisive-alert').style.display = d.isDecisive ? 'block' : 'none';
         
         const content = document.getElementById('q-content'); content.innerHTML = '';
@@ -435,7 +488,7 @@
             ov.style.display = 'none'; 
             document.getElementById('q-content').innerHTML = '<h2 class="animate__animated animate__pulse animate__infinite" style="color:var(--gold); padding: 40px 0;">جاري تحضير الجولة التالية... 🚀</h2>';
             document.getElementById('options').style.display = 'none';
-            document.getElementById('decisive-alert').style.display = 'none'; // إخفاء التنبيه
+            document.getElementById('decisive-alert').style.display = 'none'; 
             document.getElementById('status-text').innerHTML = '';
         }, 6000); 
     });
@@ -474,7 +527,6 @@
         }
     }
 
-    // 🚀 عرض الألقاب وشاشة الفوز المحدثة
     socket.on('gameOver', d => {
         document.getElementById('lobby-area').style.display = 'none';
         document.getElementById('question-area').style.display = 'none';
@@ -521,7 +573,6 @@
             html += `</div>`;
         }
 
-        // 🎭 قسم جوائز سؤالستان الخاصة (الألقاب) 🎭
         if (d.titles.bluffer || d.titles.victim || d.titles.nerd) {
             html += `<div class="animate__animated animate__bounceInUp" style="margin-top:20px; background:rgba(255,255,255,0.05); padding:15px; border-radius:15px; border:1px solid var(--gold); text-align: right;">
                         <h3 style="color:var(--gold); margin-top:0; text-align:center; font-size: 16px;">🎭 ألقاب الشرف والفضايح 🎭</h3>`;
@@ -548,6 +599,7 @@
 </script>
 </body>
 </html>
+
 
 
 
