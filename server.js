@@ -25,6 +25,16 @@ try {
 
 let roomsData = {};
 
+// 🚀 دالة ذكية لتنظيف الكلمات (عشان السيرفر ما يقبل إجابة مضللة مشابهة للصح)
+function normalizeArabic(text) {
+    if (!text) return "";
+    return text.replace(/[أإآ]/g, 'ا')
+               .replace(/ة/g, 'ه')
+               .replace(/[ىي]/g, 'ي')
+               .replace(/[\u064B-\u065F]/g, '')
+               .trim();
+}
+
 function startNewRound(rID) {
     const room = roomsData[rID];
     if(!room || questionBank.length === 0) return;
@@ -32,7 +42,7 @@ function startNewRound(rID) {
     room.currentRound++;
     if (room.currentRound > room.settings.maxRounds) {
         io.to(rID).emit('gameOver', { players: room.players });
-        return; // 🚀 شلنا سطر مسح الغرفة عشان نقدر نعيد اللعب!
+        return; 
     }
 
     const q = questionBank[Math.floor(Math.random() * questionBank.length)];
@@ -48,10 +58,12 @@ function startVotingPhase(rID, room) {
     room.phase = 'voting';
     let correctAns = room.currentQuestion.a;
     let allOptions = [correctAns];
+    let normalizedCorrect = normalizeArabic(correctAns);
 
     for (let pid in room.bluffs) {
         let b = room.bluffs[pid].trim();
-        if (b && b !== correctAns && !allOptions.includes(b)) {
+        // التدقيق الذكي هنا كمان
+        if (b && normalizeArabic(b) !== normalizedCorrect && !allOptions.includes(b)) {
             allOptions.push(b);
         }
     }
@@ -59,7 +71,7 @@ function startVotingPhase(rID, room) {
     if (room.currentQuestion.options && Array.isArray(room.currentQuestion.options)) {
         let originalOpts = [...room.currentQuestion.options].sort(() => Math.random() - 0.5);
         for (let opt of originalOpts) {
-            if (allOptions.length < 4 && !allOptions.includes(opt) && opt !== correctAns) {
+            if (allOptions.length < 4 && !allOptions.includes(opt) && normalizeArabic(opt) !== normalizedCorrect) {
                 allOptions.push(opt);
             }
         }
@@ -101,7 +113,7 @@ function evaluateRound(rID, room) {
     io.to(rID).emit('updateState', { players: room.players, leader: room.leader });
     room.currentQuestion = null;
 
-    setTimeout(() => { if (roomsData[rID] && roomsData[rID].phase === 'results') startNewRound(rID); }, 7000);
+    setTimeout(() => { if (roomsData[rID] && roomsData[rID].phase === 'results') startNewRound(rID); }, 7500);
 }
 
 function getSmartFallbackBluff(question) {
@@ -145,7 +157,6 @@ io.on('connection', (socket) => {
         if (rID && roomsData[rID] && roomsData[rID].leader === socket.id) startNewRound(rID);
     });
 
-    // 🚀 الكود الجديد لإعادة اللعبة بنفس الغرفة
     socket.on('restartGame', () => {
         const rID = socket.currentRoom;
         const room = roomsData[rID];
@@ -156,7 +167,6 @@ io.on('connection', (socket) => {
             room.bluffs = {};
             room.votes = {};
             room.currentOptions = [];
-            // تصفير النقاط للجميع
             for(let pid in room.players) {
                 room.players[pid].points = 0;
             }
