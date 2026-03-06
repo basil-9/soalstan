@@ -34,6 +34,15 @@
         
         #players-scores { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; width: 100%; font-size: 14px; margin-top: 5px; }
         .score-pill { background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 8px; font-weight: bold; border: 1px solid rgba(255,255,255,0.2); }
+
+        /* 🚀 تصميم شبكة الشخصيات الكرتونية */
+        .avatar-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; max-height: 140px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 15px; border: 1px solid rgba(168, 85, 247, 0.4); }
+        .avatar-item { width: 50px; height: 50px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: 0.2s; background: rgba(255,255,255,0.05); }
+        .avatar-item:hover { transform: scale(1.1); }
+        .avatar-item.selected { border-color: var(--gold); transform: scale(1.1); box-shadow: 0 0 10px var(--gold); background: rgba(250, 204, 21, 0.2); }
+        /* تجميل شريط التمرير */
+        .avatar-grid::-webkit-scrollbar { width: 6px; }
+        .avatar-grid::-webkit-scrollbar-thumb { background: var(--main); border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -53,7 +62,13 @@
             <button class="btn-game" style="width: 50px; margin-top: 5px; padding: 5px;" onclick="generateCode()">🎲</button>
         </div>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+        <div style="margin-top: 15px; width: 100%;">
+            <label style="font-size:13px; color: var(--gold); font-weight: bold;">اختر شخصيتك 🎭</label>
+            <div id="avatar-selection" class="avatar-grid">
+                </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
             <div>
                 <label style="font-size:11px; color: var(--gold);">وقت الجولة</label>
                 <select id="set-time" class="select-box">
@@ -149,6 +164,38 @@
     const socket = io();
     let myInfo = {}, isLeader = false, timerInt, roomSettings = {};
     let allPlayers = {}, myBluffText = "", currentCorrectAnswer = "";
+    let selectedAvatarUrl = ""; // لحفظ الشخصية المختارة
+
+    // 🚀 توليد 20 شخصية كرتونية فخمة عند فتح الصفحة
+    function generateAvatars() {
+        const styles = ['bottts', 'adventurer', 'fun-emoji', 'micah'];
+        const seeds = ['Oliver', 'Mimi', 'Loki', 'Garfield', 'Abby', 'Tinkerbell', 'Coco', 'Socks', 'Simba', 'Leo', 'Milo', 'Cleo', 'Jack', 'Luna', 'Bella', 'Max', 'Rocky', 'Zoe', 'Sam', 'Mia'];
+        const avatarBox = document.getElementById('avatar-selection');
+        
+        seeds.forEach((seed, index) => {
+            let randomStyle = styles[Math.floor(Math.random() * styles.length)];
+            let url = `https://api.dicebear.com/7.x/${randomStyle}/svg?seed=${seed}&backgroundColor=1e1b4b`;
+            
+            let img = document.createElement('img');
+            img.src = url;
+            img.className = 'avatar-item';
+            
+            // تحديد أول شخصية افتراضياً
+            if(index === 0) {
+                img.classList.add('selected');
+                selectedAvatarUrl = url;
+            }
+
+            img.onclick = () => {
+                playSnd('click');
+                document.querySelectorAll('.avatar-item').forEach(el => el.classList.remove('selected'));
+                img.classList.add('selected');
+                selectedAvatarUrl = url;
+            };
+            avatarBox.appendChild(img);
+        });
+    }
+    generateAvatars();
 
     function updateClock() {
         const now = new Date();
@@ -165,14 +212,13 @@
     function joinGame() {
         playSnd('click');
         const n = document.getElementById('player-name').value;
-        // 🚀 تنظيف الكود من المسافات عشان ما تصير غرفتين بنفس الكود
         const r = document.getElementById('room-id').value.trim().toUpperCase();
         const mt = parseInt(document.getElementById('set-time').value);
         const mr = parseInt(document.getElementById('set-rounds').value);
 
         if(!n || !r) return alert("الرجاء كتابة الاسم وكود الغرفة!");
         
-        myInfo = { name: n, room: r };
+        myInfo = { name: n, room: r, avatar: selectedAvatarUrl };
         document.getElementById('display-room-id').innerText = r;
         document.getElementById('total-rounds').innerText = mr; 
         
@@ -180,7 +226,8 @@
         document.getElementById('game-screen').style.display = 'flex';
         document.getElementById('exit-btn').style.display = 'block'; 
         
-        socket.emit('joinRoom', { roomID: r, name: n, settings: { roundTime: mt, maxRounds: mr } });
+        // 🚀 إرسال الشخصية المختارة للسيرفر
+        socket.emit('joinRoom', { roomID: r, name: n, avatar: selectedAvatarUrl, settings: { roundTime: mt, maxRounds: mr } });
     }
 
     function exitGame() {
@@ -195,7 +242,6 @@
         const scoresDiv = document.getElementById('players-scores');
         scoresDiv.innerHTML = '';
         
-        // 🚀 تحديث لوحة الانتظار بشخصيات كرتونية فخمة
         const lobbyList = document.getElementById('players-list');
         lobbyList.innerHTML = '';
         let lobbyHtml = '<div style="display:flex; flex-wrap:wrap; gap:15px; justify-content:center;">';
@@ -236,7 +282,6 @@
         
         const content = document.getElementById('q-content'); content.innerHTML = '';
         
-        // 🚀 إضافة نوع السؤال
         let qType = d.fullQuestion.category || d.fullQuestion.type || 'معلومة عامة';
         content.innerHTML += `<div style="background:var(--main); color:white; padding:4px 12px; border-radius:12px; display:inline-block; font-size:13px; font-weight:bold; margin-bottom:10px;">📌 ${qType}</div>`;
         
@@ -374,7 +419,9 @@
 
         let finalHtml = `<div style="background: rgba(0,0,0,0.5); border: 2px solid var(--main); padding: 15px; border-radius: 15px;">`;
         pArray.forEach((p, i) => {
-            finalHtml += `<div style="color: ${i===0 ? 'var(--gold)' : 'white'}; font-size:18px; margin-bottom: 8px;">${i+1}. ${p.name}: ${p.points} نقطة</div>`;
+            finalHtml += `<div style="color: ${i===0 ? 'var(--gold)' : 'white'}; font-size:18px; margin-bottom: 8px; display:flex; align-items:center; gap:10px;">
+                <span>${i+1}.</span> <img src="${p.avatar}" style="width:30px; height:30px; border-radius:50%; background:rgba(0,0,0,0.3);"> ${p.name}: ${p.points} نقطة
+            </div>`;
         });
         finalHtml += `<hr style="border-color: var(--gold); margin: 15px 0;">
                 <div style="color: var(--green); font-size: 24px; font-weight:bold;">البطل: ${winner.name} 🏆</div>
