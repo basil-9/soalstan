@@ -67,7 +67,7 @@ function startVotingPhase(rID, room) {
     }
 
     allOptions.sort(() => Math.random() - 0.5);
-    room.currentOptions = allOptions; // حفظ الخيارات للاختيار العشوائي وقت التايم أوت
+    room.currentOptions = allOptions; 
 
     io.to(rID).emit('startVotingPhase', { options: allOptions });
 }
@@ -108,10 +108,10 @@ function evaluateRound(rID, room) {
 io.on('connection', (socket) => {
     
     socket.on('joinRoom', (data) => {
-        // 🚀 تنظيف كود الغرفة عشان ما يصير فيه غرفتين بالغلط!
         const roomID = data.roomID.trim().toUpperCase(); 
         const name = data.name.trim() || 'لاعب';
         const settings = data.settings;
+        const avatar = data.avatar; // 🚀 استقبال الشخصية اللي اختارها اللاعب
         if (!roomID) return;
 
         if(socket.currentRoom) socket.leave(socket.currentRoom);
@@ -136,11 +136,8 @@ io.on('connection', (socket) => {
         const room = roomsData[roomID];
         if (!room.leader || !room.players[room.leader]) room.leader = socket.id;
 
-        // 🤖 توليد شخصية كرتونية (روبوت/جهاز) فريدة لكل لاعب
-        let randomSeed = name + Math.floor(Math.random() * 10000);
-        let avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(randomSeed)}&backgroundColor=1e1b4b`;
-
-        room.players[socket.id] = { name: name, points: 0, avatar: avatarUrl };
+        // 🚀 إضافة الشخصية لبيانات اللاعب
+        room.players[socket.id] = { name: name, points: 0, avatar: avatar };
         io.to(roomID).emit('updateState', { players: room.players, leader: room.leader, settings: room.settings });
     });
 
@@ -186,7 +183,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 🚀 تحديث الاختيار التلقائي عند انتهاء الوقت!
     socket.on('timeoutVoteAll', () => {
         const rID = socket.currentRoom;
         const room = roomsData[rID];
@@ -194,7 +190,6 @@ io.on('connection', (socket) => {
 
         for(let pid in room.players) {
             if (!room.votes[pid]) {
-                // يختار له إجابة عشوائية من الخيارات المتوفرة بدال ما يطلعه برا اللعبة
                 let randomOpt = room.currentOptions[Math.floor(Math.random() * room.currentOptions.length)];
                 room.votes[pid] = randomOpt;
             }
@@ -223,7 +218,8 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log('🚀 Server is running!'));
+server.listen(PORT, () => console.log('🚀 Server is running!'));;
+
 
 
 
