@@ -137,13 +137,13 @@
             <div id="leader-tag" style="display:none; color: var(--gold); font-weight: bold; font-size: 12px;">👑 أنت القائد</div>
         </div>
 
-        <div id="win-screen" class="animate__animated zoomIn" style="display:none; text-align:center; width: 100%;">
+        <div id="win-screen" class="animate__animated zoomIn" style="display:none; text-align:center; width: 100%; max-height: 85vh; overflow-y: auto;">
             <div id="winner-text" style="color: white; margin: 10px 0;"></div>
             
             <button id="restart-btn" class="btn-game animate__animated animate__pulse animate__infinite" style="background:var(--main); color:white; border:none; margin-top:20px; display:none;" onclick="socket.emit('restartGame')">إعادة اللعب بنفس الغرفة 🔄</button>
             <h3 id="wait-restart-text" style="color:var(--gold); margin-top:20px; display:none; font-size:16px;">بانتظار القائد لإعادة اللعبة... ⏳</h3>
             
-            <button class="btn-game" style="border-color:var(--red); color:var(--red); margin-top:10px; font-size: 14px; padding: 5px;" onclick="exitGame()">خروج من الغرفة 🚪</button>
+            <button class="btn-game" style="border-color:var(--red); color:var(--red); margin-top:10px; font-size: 14px; padding: 5px; margin-bottom: 20px;" onclick="exitGame()">خروج من الغرفة 🚪</button>
         </div>
         
         <div id="lobby-area" style="text-align: center; width: 100%; margin-top: 5px;">
@@ -158,6 +158,10 @@
         </div>
 
         <div id="question-area" style="display: none; text-align: center; width: 100%;">
+            <div id="decisive-alert" style="display:none; margin-bottom: 10px;">
+                <div class="animate__animated animate__flash animate__infinite" style="background:var(--red); color:white; padding:5px 15px; border-radius:12px; font-weight:bold; display:inline-block; font-size: 14px;">🔥 الجولة الحاسمة: النقاط مضاعفة! 🔥</div>
+            </div>
+
             <div id="q-content"></div>
             <div id="bluff-area" style="display: none; margin-top: 15px; width: 100%;">
                 <input type="text" id="my-bluff" class="input-box" placeholder="اكتب إجابة مضللة لخدعهم...">
@@ -184,13 +188,12 @@
     let allPlayers = {}, myBluffText = "", currentCorrectAnswer = "";
     let selectedAvatarUrl = ""; 
 
-    // 🚀 دالة ذكية لتنظيف وتوحيد الكلمات العربية (للتدقيق الدقيق)
     function normalizeArabic(text) {
         if (!text) return "";
         return text.replace(/[أإآ]/g, 'ا')
                    .replace(/ة/g, 'ه')
                    .replace(/[ىي]/g, 'ي')
-                   .replace(/[\u064B-\u065F]/g, '') // حذف التشكيل
+                   .replace(/[\u064B-\u065F]/g, '')
                    .trim();
     }
 
@@ -321,6 +324,9 @@
         document.getElementById('current-round').innerText = d.roundNumber;
         document.getElementById('status-text').innerHTML = '';
         
+        // 🚀 إظهار أو إخفاء تنبيه الجولة الحاسمة
+        document.getElementById('decisive-alert').style.display = d.isDecisive ? 'block' : 'none';
+        
         const content = document.getElementById('q-content'); content.innerHTML = '';
         
         let qType = d.fullQuestion.category || d.fullQuestion.hint || 'سؤال عام';
@@ -346,10 +352,8 @@
         let bluff = document.getElementById('my-bluff').value.trim();
         
         if(!bluff) return alert("اكتب أي إجابة عشان تخدعهم!");
-        
-        // 🚀 التدقيق الذكي باستخدام الدالة الجديدة
         if(normalizeArabic(bluff) === normalizeArabic(currentCorrectAnswer)) {
-            return alert("مبروك لقد ربحت ! اكتب اجابة اخرى لكي تخدع اصدقائك");
+            return alert("لقد كتبت الاجابة الصحيحة بالفعل اكتب اجابة اخرى لكي تخدع اصدقائك");
         }
 
         myBluffText = bluff;
@@ -412,7 +416,6 @@
             let details = p.pointsGained > 0 ? `<span style="color:var(--green)">(+${p.pointsGained})</span>` : "(0)";
             let trickInfo = p.tricked.length > 0 ? `<br><span style="color:var(--red);font-size:12px;">خدع: ${p.tricked.join('، ')}</span>` : "";
             
-            // 🚀 إظهار اختيار اللاعب
             let voteText = p.votedFor ? p.votedFor : "لم يصوت";
             let voteChoice = `<br><span style="color:#94a3b8;font-size:12px;">اختار: <span style="color:white;">${voteText}</span></span>`;
 
@@ -432,8 +435,9 @@
             ov.style.display = 'none'; 
             document.getElementById('q-content').innerHTML = '<h2 class="animate__animated animate__pulse animate__infinite" style="color:var(--gold); padding: 40px 0;">جاري تحضير الجولة التالية... 🚀</h2>';
             document.getElementById('options').style.display = 'none';
+            document.getElementById('decisive-alert').style.display = 'none'; // إخفاء التنبيه
             document.getElementById('status-text').innerHTML = '';
-        }, 6000); // زدتها لـ 6 ثواني عشان يمديهم يقرأون مين اختار ايش
+        }, 6000); 
     });
 
     function startTimer(phase) {
@@ -470,6 +474,7 @@
         }
     }
 
+    // 🚀 عرض الألقاب وشاشة الفوز المحدثة
     socket.on('gameOver', d => {
         document.getElementById('lobby-area').style.display = 'none';
         document.getElementById('question-area').style.display = 'none';
@@ -513,6 +518,16 @@
                     <span>${i+1}.</span> <img src="${pArray[i].avatar}" style="width:25px; height:25px; border-radius:50%; background:rgba(0,0,0,0.3);"> ${pArray[i].name} (${pArray[i].points} نقطة)
                 </div>`;
             }
+            html += `</div>`;
+        }
+
+        // 🎭 قسم جوائز سؤالستان الخاصة (الألقاب) 🎭
+        if (d.titles.bluffer || d.titles.victim || d.titles.nerd) {
+            html += `<div class="animate__animated animate__bounceInUp" style="margin-top:20px; background:rgba(255,255,255,0.05); padding:15px; border-radius:15px; border:1px solid var(--gold); text-align: right;">
+                        <h3 style="color:var(--gold); margin-top:0; text-align:center; font-size: 16px;">🎭 ألقاب الشرف والفضايح 🎭</h3>`;
+            if (d.titles.bluffer) html += `<div style="margin:8px 0; font-size: 14px;">🦊 <b style="color:var(--gold);">أكبر نصاب:</b> ${d.titles.bluffer}</div>`;
+            if (d.titles.victim) html += `<div style="margin:8px 0; font-size: 14px;">🤡 <b style="color:var(--red);">الضحية:</b> ${d.titles.victim}</div>`;
+            if (d.titles.nerd) html += `<div style="margin:8px 0; font-size: 14px;">🤓 <b style="color:var(--green);">الدافور:</b> ${d.titles.nerd}</div>`;
             html += `</div>`;
         }
             
