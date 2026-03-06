@@ -80,9 +80,9 @@
     <div class="how-to-play">
         <h3 style="color: var(--gold); margin: 0 0 10px 0; font-size: 16px;">كيف تلعب؟ (سؤالستان) 📖</h3>
         <ul>
-            <li>يطلع لك السؤال تكتب اجابة تخدع اللي معاك بالغرفة عشان تجيك نقطة. </li>
-            <li>بعد ماتطلع لك الاختيارات اختار الاجابة الصح!</li>
-            <li>الجواب الصحيح تاخذ عليه نقطتين ,اللي يختار جوابك تاخذ نقطة .</li>
+            <li>يطلع لك السؤال، اكتب إجابة تخدع اللي معاك بالغرفة عشان تجيك نقطة.</li>
+            <li>بعد ما تطلع لك الاختيارات اختار الإجابة الصح!</li>
+            <li>الجواب الصحيح تاخذ عليه نقطتين، اللي يختار جوابك تاخذ نقطة.</li>
             <li>كيف ينضمون أخوياك؟ ترسل لهم الكود اللي جنب النرد!</li>
         </ul>
     </div>
@@ -114,7 +114,9 @@
         </div>
         
         <div id="lobby-area" style="text-align: center; width: 100%; margin-top: 5px;">
-            <div id="players-list" style="margin-bottom: 15px; color: var(--gold); font-size: 14px; padding: 10px; border: 1px dashed var(--main); border-radius: 10px;">بانتظار انضمام اللاعبين...</div>
+            <h2 style="font-size: 18px; color: var(--main); margin-bottom: 10px;">اللاعبين المتصلين:</h2>
+            <div id="players-list" style="margin-bottom: 20px; padding: 15px; border: 1px dashed var(--main); border-radius: 15px; min-height: 100px;">بانتظار انضمام اللاعبين...</div>
+            
             <h2 id="hint-text" style="font-size: 22px; padding: 10px;">بانتظار القائد لبدء اللعبة...</h2>
             
             <div id="leader-controls" style="display:none; margin-top: 10px; gap: 5px; justify-content: center;">
@@ -163,7 +165,8 @@
     function joinGame() {
         playSnd('click');
         const n = document.getElementById('player-name').value;
-        const r = document.getElementById('room-id').value;
+        // 🚀 تنظيف الكود من المسافات عشان ما تصير غرفتين بنفس الكود
+        const r = document.getElementById('room-id').value.trim().toUpperCase();
         const mt = parseInt(document.getElementById('set-time').value);
         const mr = parseInt(document.getElementById('set-rounds').value);
 
@@ -191,13 +194,25 @@
         
         const scoresDiv = document.getElementById('players-scores');
         scoresDiv.innerHTML = '';
-        let listText = [];
+        
+        // 🚀 تحديث لوحة الانتظار بشخصيات كرتونية فخمة
+        const lobbyList = document.getElementById('players-list');
+        lobbyList.innerHTML = '';
+        let lobbyHtml = '<div style="display:flex; flex-wrap:wrap; gap:15px; justify-content:center;">';
+
         for(let id in allPlayers) {
             let p = allPlayers[id];
             scoresDiv.innerHTML += `<div class="score-pill" style="${(id === socket.id) ? 'color:var(--gold)' : ''}">${p.name}: <span>${p.points}</span></div>`;
-            listText.push(p.name + (d.leader === id ? ' 👑' : ''));
+            
+            let isLeaderBadge = (d.leader === id) ? '👑' : '';
+            lobbyHtml += `
+            <div class="animate__animated animate__zoomIn" style="display:flex; flex-direction:column; align-items:center; background:rgba(255,255,255,0.05); padding:10px; border-radius:15px; border:1px solid var(--main); width:80px;">
+                <img src="${p.avatar}" style="width:60px; height:60px; border-radius:50%; background:rgba(0,0,0,0.3); margin-bottom:5px;">
+                <span style="color:white; font-size:12px; font-weight:bold; text-align:center; word-break:break-word;">${p.name} ${isLeaderBadge}</span>
+            </div>`;
         }
-        document.getElementById('players-list').innerHTML = "👥 المتواجدين: " + listText.join(' ، ');
+        lobbyHtml += '</div>';
+        lobbyList.innerHTML = lobbyHtml;
 
         if (document.getElementById('lobby-area').style.display !== 'none') {
             if (isLeader) { 
@@ -212,19 +227,23 @@
         }
     });
 
-    // 1. مرحلة التضليل
     socket.on('startBluffPhase', d => {
-        currentCorrectAnswer = d.fullQuestion.a; // حفظ الإجابة الصحيحة للتحقق
+        currentCorrectAnswer = d.fullQuestion.a; 
         document.getElementById('lobby-area').style.display = 'none';
         document.getElementById('question-area').style.display = 'block';
         document.getElementById('current-round').innerText = d.roundNumber;
         document.getElementById('status-text').innerHTML = '';
         
         const content = document.getElementById('q-content'); content.innerHTML = '';
-        const imgSrc = d.fullQuestion.image || d.fullQuestion.img || d.fullQuestion.url;
-        if (imgSrc) content.innerHTML += `<img src="${imgSrc}" class="q-image" onerror="this.style.display='none'">`;
         
-        content.innerHTML += `<h1 style="font-size: 22px; color: var(--main); margin: 0;">${d.fullQuestion.q}</h1>`;
+        // 🚀 إضافة نوع السؤال
+        let qType = d.fullQuestion.category || d.fullQuestion.type || 'معلومة عامة';
+        content.innerHTML += `<div style="background:var(--main); color:white; padding:4px 12px; border-radius:12px; display:inline-block; font-size:13px; font-weight:bold; margin-bottom:10px;">📌 ${qType}</div>`;
+        
+        const imgSrc = d.fullQuestion.image || d.fullQuestion.img || d.fullQuestion.url;
+        if (imgSrc) content.innerHTML += `<br><img src="${imgSrc}" class="q-image" onerror="this.style.display='none'">`;
+        
+        content.innerHTML += `<h1 style="font-size: 22px; color: var(--main); margin: 5px 0 0 0;">${d.fullQuestion.q}</h1>`;
         
         document.getElementById('bluff-area').style.display = 'block';
         document.getElementById('options').style.display = 'none';
@@ -240,18 +259,16 @@
         
         if(!bluff) return alert("اكتب أي إجابة عشان تخدعهم!");
         
-        // 🚀 حماية: منع اللاعب من كتابة الإجابة الصحيحة
         if(bluff === currentCorrectAnswer) {
-            return alert("مبروك لقد كسبت! اكتب إجابة أخرى لكي تخدع أصدقائك 😉");
+            return alert("لقد كتبت الاجابة الصحيحة بالفعل اكتب اجابة اخرى لكي تخدع اصدقائك");
         }
 
         myBluffText = bluff;
         document.getElementById('bluff-area').style.display = 'none';
-        document.getElementById('status-text').innerHTML = '<p style="color:var(--gold);">تم الحفظ! بانتظار البقية يكتبون خدعهم...</p>';
+        document.getElementById('status-text').innerHTML = '<p class="animate__animated animate__pulse animate__infinite" style="color:var(--gold);">تم الحفظ! بانتظار البقية يكتبون خدعهم...</p>';
         socket.emit('submitBluff', { bluff: bluff });
     }
 
-    // 2. مرحلة التصويت (ظهور الخيارات)
     socket.on('startVotingPhase', d => {
         clearInterval(timerInt);
         document.getElementById('bluff-area').style.display = 'none';
@@ -270,7 +287,7 @@
                     b.style.background = 'white'; b.style.color = 'black';
                     const allBtns = document.querySelectorAll('#options .btn-game');
                     allBtns.forEach(btn => btn.disabled = true);
-                    document.getElementById('status-text').innerHTML = '<p style="color:var(--gold);">تم التصويت! بانتظار النتيجة...</p>';
+                    document.getElementById('status-text').innerHTML = '<p class="animate__animated animate__pulse animate__infinite" style="color:var(--gold);">تم التصويت! بانتظار النتيجة...</p>';
                     socket.emit('submitVote', { vote: o }); 
                 };
             }
@@ -289,7 +306,6 @@
         }
     });
 
-    // 3. عرض النتائج
     socket.on('roundResult', d => {
         clearInterval(timerInt); document.getElementById('timer-container').style.display = 'none';
         
@@ -318,10 +334,9 @@
 
         if(myRes.pointsGained > 0) playSnd('correct'); else playSnd('wrong');
 
-        // حل مشكلة التعليق: لا نرجع للوبي، فقط نمسح المحتوى ونكتب "جاري التحضير"
         setTimeout(() => { 
             ov.style.display = 'none'; 
-            document.getElementById('q-content').innerHTML = '<h2 style="color:var(--gold); padding: 40px 0;">جاري تحضير الجولة التالية... 🚀</h2>';
+            document.getElementById('q-content').innerHTML = '<h2 class="animate__animated animate__pulse animate__infinite" style="color:var(--gold); padding: 40px 0;">جاري تحضير الجولة التالية... 🚀</h2>';
             document.getElementById('options').style.display = 'none';
             document.getElementById('status-text').innerHTML = '';
         }, 5000);
@@ -371,6 +386,7 @@
 </script>
 </body>
 </html>
+
 
 
 
