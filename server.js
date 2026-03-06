@@ -50,7 +50,6 @@ function startVotingPhase(rID, room) {
     let correctAns = room.currentQuestion.a;
     let allOptions = [correctAns];
 
-    // 1. إضافة تضليلات اللاعبين
     for (let pid in room.bluffs) {
         let b = room.bluffs[pid].trim();
         if (b && b !== correctAns && !allOptions.includes(b)) {
@@ -58,19 +57,17 @@ function startVotingPhase(rID, room) {
         }
     }
 
-    // 2. إكمال الخيارات من السؤال الأصلي عشان ما تطلع الشاشة فاضية
-    if (room.currentQuestion.options) {
-        let originalOpts = room.currentQuestion.options.sort(() => Math.random() - 0.5);
+    if (room.currentQuestion.options && Array.isArray(room.currentQuestion.options)) {
+        let originalOpts = [...room.currentQuestion.options].sort(() => Math.random() - 0.5);
         for (let opt of originalOpts) {
-            // نبي نوصل الخيارات لـ 4 على الأقل
-            if (allOptions.length < 4 && !allOptions.includes(opt)) {
+            if (allOptions.length < 4 && !allOptions.includes(opt) && opt !== correctAns) {
                 allOptions.push(opt);
             }
         }
     }
 
-    // خلط الأزرار
     allOptions.sort(() => Math.random() - 0.5);
+    room.currentOptions = allOptions; // حفظ الخيارات للاختيار العشوائي وقت التايم أوت
 
     io.to(rID).emit('startVotingPhase', { options: allOptions });
 }
@@ -84,17 +81,16 @@ function evaluateRound(rID, room) {
         results[pid] = { name: room.players[pid].name, pointsGained: 0, votedFor: room.votes[pid], tricked: [] };
     }
 
-    // توزيع النقاط (2 للصح، 1 للتضليل)
     for (let voterId in room.votes) {
         let vote = room.votes[voterId];
         
         if (vote === correctAns) {
-            room.players[voterId].points += 2;
+            room.players[voterId].points += 2; 
             results[voterId].pointsGained += 2;
         } else if (vote && vote !== "TIMEOUT") {
             for (let blufferId in room.bluffs) {
                 if (blufferId !== voterId && room.bluffs[blufferId] === vote) {
-                    room.players[blufferId].points += 1;
+                    room.players[blufferId].points += 1; 
                     results[blufferId].pointsGained += 1;
                     results[blufferId].tricked.push(room.players[voterId].name); 
                 }
@@ -106,14 +102,16 @@ function evaluateRound(rID, room) {
     io.to(rID).emit('updateState', { players: room.players, leader: room.leader });
     room.currentQuestion = null;
 
-    // حل مشكلة التعليق: السيرفر ينتظر 7 ثواني ثم يبدأ الجولة براحته
-    setTimeout(() => { if (roomsData[rID] && !roomsData[rID].currentQuestion) startNewRound(rID); }, 7000);
+    setTimeout(() => { if (roomsData[rID]) startNewRound(rID); }, 7000);
 }
 
 io.on('connection', (socket) => {
     
     socket.on('joinRoom', (data) => {
-        const { roomID, name, settings } = data;
+        // 🚀 تنظيف كود الغرفة عشان ما يصير فيه غرفتين بالغلط!
+        const roomID = data.roomID.trim().toUpperCase(); 
+        const name = data.name.trim() || 'لاعب';
+        const settings = data.settings;
         if (!roomID) return;
 
         if(socket.currentRoom) socket.leave(socket.currentRoom);
@@ -130,14 +128,19 @@ io.on('connection', (socket) => {
                 currentRound: 0,
                 phase: 'idle',
                 bluffs: {},
-                votes: {}
+                votes: {},
+                currentOptions: []
             };
         }
         
         const room = roomsData[roomID];
         if (!room.leader || !room.players[room.leader]) room.leader = socket.id;
 
-        room.players[socket.id] = { name: name || 'لاعب', points: 0 };
+        // 🤖 توليد شخصية كرتونية (روبوت/جهاز) فريدة لكل لاعب
+        let randomSeed = name + Math.floor(Math.random() * 10000);
+        let avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(randomSeed)}&backgroundColor=1e1b4b`;
+
+        room.players[socket.id] = { name: name, points: 0, avatar: avatarUrl };
         io.to(roomID).emit('updateState', { players: room.players, leader: room.leader, settings: room.settings });
     });
 
@@ -165,7 +168,7 @@ io.on('connection', (socket) => {
         if(!room || room.phase !== 'bluffing') return;
 
         for(let pid in room.players) {
-            if (!room.bluffs[pid]) room.bluffs[pid] = "تأخر في الإجابة";
+            if (!room.bluffs[pid]) room.bluffs[pid] = "تأخر في الإجابة " + Math.floor(Math.random()*100);
         }
         startVotingPhase(rID, room);
     });
@@ -183,13 +186,18 @@ io.on('connection', (socket) => {
         }
     });
 
+    // 🚀 تحديث الاختيار التلقائي عند انتهاء الوقت!
     socket.on('timeoutVoteAll', () => {
         const rID = socket.currentRoom;
         const room = roomsData[rID];
         if(!room || room.phase !== 'voting') return;
 
         for(let pid in room.players) {
-            if (!room.votes[pid]) room.votes[pid] = "TIMEOUT";
+            if (!room.votes[pid]) {
+                // يختار له إجابة عشوائية من الخيارات المتوفرة بدال ما يطلعه برا اللعبة
+                let randomOpt = room.currentOptions[Math.floor(Math.random() * room.currentOptions.length)];
+                room.votes[pid] = randomOpt;
+            }
         }
         evaluateRound(rID, room);
     });
