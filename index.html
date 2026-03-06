@@ -141,7 +141,6 @@
             <div id="winner-text" style="color: white; margin: 10px 0;"></div>
             
             <button id="restart-btn" class="btn-game animate__animated animate__pulse animate__infinite" style="background:var(--main); color:white; border:none; margin-top:20px; display:none;" onclick="socket.emit('restartGame')">إعادة اللعب بنفس الغرفة 🔄</button>
-            
             <h3 id="wait-restart-text" style="color:var(--gold); margin-top:20px; display:none; font-size:16px;">بانتظار القائد لإعادة اللعبة... ⏳</h3>
             
             <button class="btn-game" style="border-color:var(--red); color:var(--red); margin-top:10px; font-size: 14px; padding: 5px;" onclick="exitGame()">خروج من الغرفة 🚪</button>
@@ -184,6 +183,16 @@
     let myInfo = {}, isLeader = false, timerInt, roomSettings = {};
     let allPlayers = {}, myBluffText = "", currentCorrectAnswer = "";
     let selectedAvatarUrl = ""; 
+
+    // 🚀 دالة ذكية لتنظيف وتوحيد الكلمات العربية (للتدقيق الدقيق)
+    function normalizeArabic(text) {
+        if (!text) return "";
+        return text.replace(/[أإآ]/g, 'ا')
+                   .replace(/ة/g, 'ه')
+                   .replace(/[ىي]/g, 'ي')
+                   .replace(/[\u064B-\u065F]/g, '') // حذف التشكيل
+                   .trim();
+    }
 
     function generateAvatars() {
         const styles = ['bottts', 'adventurer', 'fun-emoji', 'micah'];
@@ -289,13 +298,11 @@
         }
     });
 
-    // 🚀 الكود الجديد اللي يرجعهم للوبي إذا القائد ضغط إعادة
     socket.on('gameRestarted', () => {
         document.getElementById('win-screen').style.display = 'none';
         document.getElementById('lobby-area').style.display = 'block';
         document.getElementById('current-round').innerText = '1';
         
-        // مسح الورق الاحتفالي
         document.querySelectorAll('.confetti').forEach(e => e.remove());
         
         if (isLeader) { 
@@ -339,7 +346,11 @@
         let bluff = document.getElementById('my-bluff').value.trim();
         
         if(!bluff) return alert("اكتب أي إجابة عشان تخدعهم!");
-        if(bluff === currentCorrectAnswer) return alert("لقد كتبت الاجابة الصحيحة بالفعل اكتب اجابة اخرى لكي تخدع اصدقائك");
+        
+        // 🚀 التدقيق الذكي باستخدام الدالة الجديدة
+        if(normalizeArabic(bluff) === normalizeArabic(currentCorrectAnswer)) {
+            return alert("مبروك لقد ربحت ! اكتب اجابة اخرى لكي تخدع اصدقائك");
+        }
 
         myBluffText = bluff;
         document.getElementById('bluff-area').style.display = 'none';
@@ -400,8 +411,13 @@
             let p = d.results[pid];
             let details = p.pointsGained > 0 ? `<span style="color:var(--green)">(+${p.pointsGained})</span>` : "(0)";
             let trickInfo = p.tricked.length > 0 ? `<br><span style="color:var(--red);font-size:12px;">خدع: ${p.tricked.join('، ')}</span>` : "";
+            
+            // 🚀 إظهار اختيار اللاعب
+            let voteText = p.votedFor ? p.votedFor : "لم يصوت";
+            let voteChoice = `<br><span style="color:#94a3b8;font-size:12px;">اختار: <span style="color:white;">${voteText}</span></span>`;
+
             resHtml += `<div style="font-size:14px; margin:5px 0; background:rgba(0,0,0,0.5); padding:5px; border-radius:5px;">
-                ${p.name}: ${details} ${trickInfo}
+                ${p.name}: ${details} ${voteChoice} ${trickInfo}
             </div>`;
         }
 
@@ -417,7 +433,7 @@
             document.getElementById('q-content').innerHTML = '<h2 class="animate__animated animate__pulse animate__infinite" style="color:var(--gold); padding: 40px 0;">جاري تحضير الجولة التالية... 🚀</h2>';
             document.getElementById('options').style.display = 'none';
             document.getElementById('status-text').innerHTML = '';
-        }, 5000);
+        }, 6000); // زدتها لـ 6 ثواني عشان يمديهم يقرأون مين اختار ايش
     });
 
     function startTimer(phase) {
@@ -503,7 +519,6 @@
         document.getElementById('winner-text').innerHTML = html;
         document.getElementById('win-screen').style.display = 'block';
         
-        // 🚀 إظهار الأزرار حسب رتبة اللاعب
         if(isLeader) {
             document.getElementById('restart-btn').style.display = 'inline-block';
             document.getElementById('wait-restart-text').style.display = 'none';
