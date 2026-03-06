@@ -35,12 +35,10 @@
         #players-scores { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; width: 100%; font-size: 14px; margin-top: 5px; }
         .score-pill { background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 8px; font-weight: bold; border: 1px solid rgba(255,255,255,0.2); }
 
-        /* 🚀 تصميم شبكة الشخصيات الكرتونية */
         .avatar-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; max-height: 140px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 15px; border: 1px solid rgba(168, 85, 247, 0.4); }
         .avatar-item { width: 50px; height: 50px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: 0.2s; background: rgba(255,255,255,0.05); }
         .avatar-item:hover { transform: scale(1.1); }
         .avatar-item.selected { border-color: var(--gold); transform: scale(1.1); box-shadow: 0 0 10px var(--gold); background: rgba(250, 204, 21, 0.2); }
-        /* تجميل شريط التمرير */
         .avatar-grid::-webkit-scrollbar { width: 6px; }
         .avatar-grid::-webkit-scrollbar-thumb { background: var(--main); border-radius: 10px; }
     </style>
@@ -74,7 +72,10 @@
                 <select id="set-time" class="select-box">
                     <option value="15">15 ثانية</option>
                     <option value="20">20 ثانية</option>
+                    <option value="25">25 ثانية</option>
                     <option value="30" selected>30 ثانية</option>
+                    <option value="35">35 ثانية</option>
+                    <option value="40">40 ثانية</option>
                     <option value="45">45 ثانية</option>
                     <option value="60">60 ثانية</option>
                 </select>
@@ -164,9 +165,8 @@
     const socket = io();
     let myInfo = {}, isLeader = false, timerInt, roomSettings = {};
     let allPlayers = {}, myBluffText = "", currentCorrectAnswer = "";
-    let selectedAvatarUrl = ""; // لحفظ الشخصية المختارة
+    let selectedAvatarUrl = ""; 
 
-    // 🚀 توليد 20 شخصية كرتونية فخمة عند فتح الصفحة
     function generateAvatars() {
         const styles = ['bottts', 'adventurer', 'fun-emoji', 'micah'];
         const seeds = ['Oliver', 'Mimi', 'Loki', 'Garfield', 'Abby', 'Tinkerbell', 'Coco', 'Socks', 'Simba', 'Leo', 'Milo', 'Cleo', 'Jack', 'Luna', 'Bella', 'Max', 'Rocky', 'Zoe', 'Sam', 'Mia'];
@@ -180,7 +180,6 @@
             img.src = url;
             img.className = 'avatar-item';
             
-            // تحديد أول شخصية افتراضياً
             if(index === 0) {
                 img.classList.add('selected');
                 selectedAvatarUrl = url;
@@ -226,7 +225,6 @@
         document.getElementById('game-screen').style.display = 'flex';
         document.getElementById('exit-btn').style.display = 'block'; 
         
-        // 🚀 إرسال الشخصية المختارة للسيرفر
         socket.emit('joinRoom', { roomID: r, name: n, avatar: selectedAvatarUrl, settings: { roundTime: mt, maxRounds: mr } });
     }
 
@@ -282,7 +280,10 @@
         
         const content = document.getElementById('q-content'); content.innerHTML = '';
         
-        let qType = d.fullQuestion.category || d.fullQuestion.type || 'معلومة عامة';
+        // 🚀 إصلاح نوع السؤال عشان ما تطلع كلمة text
+        let qType = d.fullQuestion.category || d.fullQuestion.hint || 'سؤال عام';
+        if (qType === 'text' || qType === 'image') qType = 'سؤال عام';
+        
         content.innerHTML += `<div style="background:var(--main); color:white; padding:4px 12px; border-radius:12px; display:inline-block; font-size:13px; font-weight:bold; margin-bottom:10px;">📌 ${qType}</div>`;
         
         const imgSrc = d.fullQuestion.image || d.fullQuestion.img || d.fullQuestion.url;
@@ -433,6 +434,7 @@
 </script>
 </body>
 </html>
+
 
 
 
