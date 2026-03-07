@@ -40,7 +40,6 @@
         .avatar-item:hover { transform: scale(1.1); }
         .avatar-item.selected { border-color: var(--gold); transform: scale(1.1); box-shadow: 0 0 10px var(--gold); background: rgba(250, 204, 21, 0.2); }
         
-        /* 🚀 تم تكبير مربع التصنيفات بشكل ممتاز! */
         .cat-wrapper { margin-top: 15px; width: 100%; max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 15px; border: 1px solid var(--main); box-sizing: border-box; }
         .cat-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
         .cat-btn { background: #1d4ed8; color: white; border: 2px solid #1e3a8a; border-radius: 8px; padding: 8px 15px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
@@ -384,8 +383,15 @@
         
         content.innerHTML += `<div style="background:var(--main); color:white; padding:4px 12px; border-radius:12px; display:inline-block; font-size:13px; font-weight:bold; margin-bottom:10px;">📌 ${qType}</div>`;
         
-        const imgSrc = d.fullQuestion.image || d.fullQuestion.img || d.fullQuestion.url;
-        if (imgSrc) content.innerHTML += `<br><img src="${imgSrc}" class="q-image" onerror="this.style.display='none'">`;
+        // 🚀 الخدعة السحرية: كسر حماية المواقع وعرض الصور إجبارياً
+        const rawImgSrc = d.fullQuestion.image || d.fullQuestion.img || d.fullQuestion.url;
+        if (rawImgSrc) {
+            let finalImgSrc = rawImgSrc;
+            if(rawImgSrc.startsWith('http')) {
+                finalImgSrc = `https://wsrv.nl/?url=${encodeURIComponent(rawImgSrc)}`;
+            }
+            content.innerHTML += `<br><img src="${finalImgSrc}" class="q-image" onerror="this.style.display='none'">`;
+        }
         
         content.innerHTML += `<h1 style="font-size: 22px; color: var(--main); margin: 5px 0 0 0;">${d.fullQuestion.q}</h1>`;
         
@@ -596,6 +602,7 @@
 </script>
 </body>
 </html>
+
 
 
 
