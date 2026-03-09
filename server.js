@@ -12,11 +12,7 @@ const io = new Server(server);
 let totalVisits = 0; // إجمالي الدخول
 let currentOnline = 0; // المتصلين الآن
 
-// 💡 التعديل السحري: يقارن ويقرأ الملفات من المجلد الرئيسي أو من public (عشان ما تطلع لك Not Found)
-app.use(express.static(__dirname));
-app.use(express.static(path.join(__dirname, 'public')));
-
-// 🔒 الرابط السري للوحة التحكم (لا تعطيه لأحد)
+// 💡 أرفعنا الرابط السري هنا (فوق) عشان السيرفر يقرأه أول شيء وما يتلخبط
 app.get('/admin-stats', (req, res) => {
     // كلمة المرور للدخول هي king123
     const password = req.query.pass;
@@ -41,7 +37,7 @@ app.get('/admin-stats', (req, res) => {
                 .stat-box { background: rgba(168, 85, 247, 0.1); border: 2px solid #a855f7; border-radius: 20px; padding: 30px; margin: 20px auto; max-width: 400px; box-shadow: 0 0 20px rgba(168, 85, 247, 0.4); }
                 h1 { color: #facc15; font-size: 35px; text-shadow: 0 0 10px #facc15; }
                 .number { font-size: 60px; font-weight: bold; color: #22c55e; margin: 10px 0; }
-                button { background:#a855f7; color:white; border:none; padding:15px 30px; border-radius:12px; cursor:pointer; font-size:18px; font-weight:bold; transition:0.3s; }
+                button { background:#a855f7; color:white; border:none; padding:15px 30px; border-radius:12px; cursor:pointer; font-size:18px; font-weight:bold; transition:0.3s; margin-top:20px; }
                 button:hover { background:#facc15; color:black; transform:scale(1.05); }
             </style>
         </head>
@@ -51,13 +47,13 @@ app.get('/admin-stats', (req, res) => {
             <div class="stat-box">
                 <h2>👥 المتصلين الآن</h2>
                 <div class="number">${currentOnline}</div>
-                <p style="color:#9ca3af;">عدد الأشخاص المتواجدين في اللعبة هذه اللحظة</p>
+                <p style="color:#9ca3af;">عدد الأشخاص الفاتحين للعبة الآن</p>
             </div>
 
             <div class="stat-box">
                 <h2>🚀 إجمالي الزيارات</h2>
                 <div class="number">${totalVisits}</div>
-                <p style="color:#9ca3af;">إجمالي عمليات الدخول منذ آخر تشغيل للسيرفر</p>
+                <p style="color:#9ca3af;">إجمالي الدخول منذ تشغيل السيرفر</p>
             </div>
             
             <button onclick="location.reload()">تحديث الإحصائيات 🔄</button>
@@ -66,11 +62,14 @@ app.get('/admin-stats', (req, res) => {
     `);
 });
 
+// بعد الرابط السري، نخليه يقرأ ملفات اللعبة العادية (index.html)
+app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, 'public')));
+
 // --- 🎮 منطق اللعبة والسوكيت 🎮 ---
 
 let allQuestions = [];
 try {
-    // 💡 بحث ذكي عن الأسئلة في كل الأماكن الممكنة
     let qPath = path.join(__dirname, 'questions.json');
     if (!fs.existsSync(qPath)) {
         qPath = path.join(__dirname, 'public', 'questions.json');
@@ -83,13 +82,11 @@ try {
 
 const rooms = {};
 
-// دالة لتنظيف النصوص والمقارنة العادلة
 function normalizeString(text) {
     if (!text) return "";
     return text.replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/[ىي]/g, 'ي').replace(/[\u064B-\u065F]/g, '').trim();
 }
 
-// دالة لخلط المصفوفات
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -158,7 +155,7 @@ io.on('connection', (socket) => {
             return endGame(room);
         }
 
-        const isDecisive = (room.currentRound === room.settings.maxRounds); // الجولة الأخيرة دبل
+        const isDecisive = (room.currentRound === room.settings.maxRounds);
         const q = room.questions[room.currentRound - 1];
 
         io.to(room.id).emit('startBluffPhase', {
@@ -187,9 +184,8 @@ io.on('connection', (socket) => {
 
     function proceedToVoting(room) {
         const q = room.questions[room.currentRound - 1];
-        let options = [q.a]; // الإجابة الصحيحة
+        let options = [q.a]; 
         
-        // إضافة الخدع الخاصة باللاعبين
         for (let pid in room.bluffs) {
             let b = room.bluffs[pid];
             if (normalizeString(b) !== normalizeString(q.a) && !options.includes(b)) {
@@ -197,7 +193,6 @@ io.on('connection', (socket) => {
             }
         }
         
-        // إذا كان عدد الخيارات قليل، نكمل من الخيارات الأصلية للسؤال
         if (options.length < 4 && q.options) {
             for (let op of q.options) {
                 if (!options.includes(op) && normalizeString(op) !== normalizeString(q.a)) {
@@ -241,13 +236,11 @@ io.on('connection', (socket) => {
         for (let voterId in room.votes) {
             let vote = room.votes[voterId];
             
-            // إذا جاوب صح
             if (normalizeString(vote) === normalizeString(q.a)) {
                 room.players[voterId].points += correctPoints;
                 roundData[voterId].pointsGained += correctPoints;
                 room.stats[voterId].correctAnswers++;
             } else {
-                // إذا طاح في فخ لاعب ثاني
                 for (let blufferId in room.bluffs) {
                     if (blufferId !== voterId && normalizeString(vote) === normalizeString(room.bluffs[blufferId])) {
                         room.players[blufferId].points += trickPoints;
@@ -299,11 +292,11 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         currentOnline--;
+        if (currentOnline < 0) currentOnline = 0; // عشان ما ينزل تحت الصفر أبداً
         if (socket.roomID && rooms[socket.roomID]) {
             const room = rooms[socket.roomID];
             delete room.players[socket.id];
             
-            // تعيين قائد جديد إذا خرج القائد
             if (room.leader === socket.id) {
                 const remaining = Object.keys(room.players);
                 if (remaining.length > 0) room.leader = remaining[0];
@@ -319,11 +312,6 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`🚀 السيرفر شغال على البورت ${PORT}`);
 });
-
-
-
-
-
 
 
 
