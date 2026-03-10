@@ -9,12 +9,11 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 // --- 👑 إحصائيات المخرج (السرية) 👑 ---
-let totalVisits = 0; // إجمالي الدخول
-let currentOnline = 0; // المتصلين الآن
+let totalVisits = 0; 
+let currentOnline = 0; 
 
-// 💡 أرفعنا الرابط السري هنا (فوق) عشان السيرفر يقرأه أول شيء وما يتلخبط
+// 1. الرابط السري للإحصائيات (مستحيل يخرب الحين)
 app.get('/admin-stats', (req, res) => {
-    // كلمة المرور للدخول هي king123
     const password = req.query.pass;
 
     if (password !== 'king123') {
@@ -43,41 +42,62 @@ app.get('/admin-stats', (req, res) => {
         </head>
         <body>
             <h1>👑 إحصائيات سؤالستان 👑</h1>
-            
             <div class="stat-box">
                 <h2>👥 المتصلين الآن</h2>
                 <div class="number">${currentOnline}</div>
-                <p style="color:#9ca3af;">عدد الأشخاص الفاتحين للعبة الآن</p>
             </div>
-
             <div class="stat-box">
-                <h2>🚀 إجمالي الزيارات</h2>
+                <h2>🚀 إجمالي الزيارات (للجلسة الحالية)</h2>
                 <div class="number">${totalVisits}</div>
-                <p style="color:#9ca3af;">إجمالي الدخول منذ تشغيل السيرفر</p>
             </div>
-            
             <button onclick="location.reload()">تحديث الإحصائيات 🔄</button>
         </body>
         </html>
     `);
 });
 
-// بعد الرابط السري، نخليه يقرأ ملفات اللعبة العادية (index.html)
+// 2. الرادار الذكي لملف اللعبة (سواء حطيته برا أو داخل مجلد بيشغله)
+app.get('/', (req, res) => {
+    const rootPath = path.join(__dirname, 'index.html');
+    const publicPath = path.join(__dirname, 'public', 'index.html');
+    
+    if (fs.existsSync(rootPath)) {
+        res.sendFile(rootPath);
+    } else if (fs.existsSync(publicPath)) {
+        res.sendFile(publicPath);
+    } else {
+        res.send("خطأ: لم يتم العثور على ملف index.html في مشروعك!");
+    }
+});
+
+// 3. الرادار الذكي لملف الأسئلة
+app.get('/questions.json', (req, res) => {
+    const rootPath = path.join(__dirname, 'questions.json');
+    const publicPath = path.join(__dirname, 'public', 'questions.json');
+    
+    if (fs.existsSync(rootPath)) {
+        res.sendFile(rootPath);
+    } else if (fs.existsSync(publicPath)) {
+        res.sendFile(publicPath);
+    } else {
+        res.json([]);
+    }
+});
+
 app.use(express.static(__dirname));
-app.use(express.static(path.join(__dirname, 'public')));
 
-// --- 🎮 منطق اللعبة والسوكيت 🎮 ---
-
+// --- 🎮 تحميل الأسئلة للسيرفر للتحكيم 🎮 ---
 let allQuestions = [];
 try {
-    let qPath = path.join(__dirname, 'questions.json');
-    if (!fs.existsSync(qPath)) {
-        qPath = path.join(__dirname, 'public', 'questions.json');
-    }
-    const rawData = fs.readFileSync(qPath, 'utf8');
+    const rootPath = path.join(__dirname, 'questions.json');
+    const publicPath = path.join(__dirname, 'public', 'questions.json');
+    const finalPath = fs.existsSync(rootPath) ? rootPath : publicPath;
+    
+    const rawData = fs.readFileSync(finalPath, 'utf8');
     allQuestions = JSON.parse(rawData);
+    console.log(`✅ تم تحميل ${allQuestions.length} سؤال بنجاح!`);
 } catch (e) {
-    console.error("⚠️ تأكد من وجود ملف questions.json", e);
+    console.error("⚠️ ملف الأسئلة غير موجود!", e);
 }
 
 const rooms = {};
@@ -96,6 +116,7 @@ function shuffleArray(array) {
 }
 
 io.on('connection', (socket) => {
+    // زيادة العداد بمجرد ما يفتح أحد الموقع!
     totalVisits++;
     currentOnline++;
 
@@ -291,8 +312,10 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
+        // إنقاص العداد لما يطلع اللاعب
         currentOnline--;
-        if (currentOnline < 0) currentOnline = 0; // عشان ما ينزل تحت الصفر أبداً
+        if (currentOnline < 0) currentOnline = 0; 
+        
         if (socket.roomID && rooms[socket.roomID]) {
             const room = rooms[socket.roomID];
             delete room.players[socket.id];
@@ -312,9 +335,6 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`🚀 السيرفر شغال على البورت ${PORT}`);
 });
-
-
-
 
 
 
