@@ -8,92 +8,25 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// --- 👑 إحصائيات المخرج (السرية) 👑 ---
+// --- 👑 إحصائيات المخرج 👑 ---
 let totalVisits = 0; 
 let currentOnline = 0; 
 
-// 1. الرابط السري للإحصائيات (مستحيل يخرب الحين)
-app.get('/admin-stats', (req, res) => {
-    const password = req.query.pass;
-
-    if (password !== 'king123') {
-        return res.status(403).send(`
-            <body style="background:#0b0e14; color:#ef4444; text-align:center; font-family:sans-serif; margin-top:20%;">
-                <h1>⛔ دخول ممنوع! مكان مخصص للمخرج فقط ⛔</h1>
-            </body>
-        `);
-    }
-
-    res.send(`
-        <!DOCTYPE html>
-        <html lang="ar" dir="rtl">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>لوحة تحكم المخرج 👑</title>
-            <style>
-                body { background: #0b0e14; color: white; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; }
-                .stat-box { background: rgba(168, 85, 247, 0.1); border: 2px solid #a855f7; border-radius: 20px; padding: 30px; margin: 20px auto; max-width: 400px; box-shadow: 0 0 20px rgba(168, 85, 247, 0.4); }
-                h1 { color: #facc15; font-size: 35px; text-shadow: 0 0 10px #facc15; }
-                .number { font-size: 60px; font-weight: bold; color: #22c55e; margin: 10px 0; }
-                button { background:#a855f7; color:white; border:none; padding:15px 30px; border-radius:12px; cursor:pointer; font-size:18px; font-weight:bold; transition:0.3s; margin-top:20px; }
-                button:hover { background:#facc15; color:black; transform:scale(1.05); }
-            </style>
-        </head>
-        <body>
-            <h1>👑 إحصائيات سؤالستان 👑</h1>
-            <div class="stat-box">
-                <h2>👥 المتصلين الآن</h2>
-                <div class="number">${currentOnline}</div>
-            </div>
-            <div class="stat-box">
-                <h2>🚀 إجمالي الزيارات (للجلسة الحالية)</h2>
-                <div class="number">${totalVisits}</div>
-            </div>
-            <button onclick="location.reload()">تحديث الإحصائيات 🔄</button>
-        </body>
-        </html>
-    `);
-});
-
-// 2. الرادار الذكي لملف اللعبة (سواء حطيته برا أو داخل مجلد بيشغله)
-app.get('/', (req, res) => {
-    const rootPath = path.join(__dirname, 'index.html');
-    const publicPath = path.join(__dirname, 'public', 'index.html');
-    
-    if (fs.existsSync(rootPath)) {
-        res.sendFile(rootPath);
-    } else if (fs.existsSync(publicPath)) {
-        res.sendFile(publicPath);
-    } else {
-        res.send("خطأ: لم يتم العثور على ملف index.html في مشروعك!");
-    }
-});
-
-// 3. الرادار الذكي لملف الأسئلة
+// حل مشكلة تحميل ملف الأسئلة (عشان تظهر التصنيفات)
 app.get('/questions.json', (req, res) => {
-    const rootPath = path.join(__dirname, 'questions.json');
-    const publicPath = path.join(__dirname, 'public', 'questions.json');
-    
-    if (fs.existsSync(rootPath)) {
-        res.sendFile(rootPath);
-    } else if (fs.existsSync(publicPath)) {
-        res.sendFile(publicPath);
-    } else {
-        res.json([]);
-    }
+    let qPath = path.join(__dirname, 'questions.json');
+    if (!fs.existsSync(qPath)) qPath = path.join(__dirname, 'public', 'questions.json');
+    res.sendFile(qPath);
 });
 
 app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// --- 🎮 تحميل الأسئلة للسيرفر للتحكيم 🎮 ---
 let allQuestions = [];
 try {
-    const rootPath = path.join(__dirname, 'questions.json');
-    const publicPath = path.join(__dirname, 'public', 'questions.json');
-    const finalPath = fs.existsSync(rootPath) ? rootPath : publicPath;
-    
-    const rawData = fs.readFileSync(finalPath, 'utf8');
+    let qPath = path.join(__dirname, 'questions.json');
+    if (!fs.existsSync(qPath)) qPath = path.join(__dirname, 'public', 'questions.json');
+    const rawData = fs.readFileSync(qPath, 'utf8');
     allQuestions = JSON.parse(rawData);
     console.log(`✅ تم تحميل ${allQuestions.length} سؤال بنجاح!`);
 } catch (e) {
@@ -116,9 +49,18 @@ function shuffleArray(array) {
 }
 
 io.on('connection', (socket) => {
-    // زيادة العداد بمجرد ما يفتح أحد الموقع!
     totalVisits++;
     currentOnline++;
+
+    // 🕵️‍♂️ استقبال طلب الإحصائيات السري من اللعبة
+    socket.on('requestAdminStats', (pin) => {
+        // الرقم السري هو 1234 (تقدر تغيره)
+        if (pin === '1234') {
+            socket.emit('adminStatsResponse', { online: currentOnline, total: totalVisits });
+        } else {
+            socket.emit('adminStatsError', 'الرقم السري غير صحيح! ⛔');
+        }
+    });
 
     socket.on('joinRoom', (data) => {
         const { roomID, name, avatar, settings } = data;
@@ -312,7 +254,6 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        // إنقاص العداد لما يطلع اللاعب
         currentOnline--;
         if (currentOnline < 0) currentOnline = 0; 
         
@@ -335,7 +276,6 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`🚀 السيرفر شغال على البورت ${PORT}`);
 });
-
 
 
 
