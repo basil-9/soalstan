@@ -58,12 +58,25 @@
         @keyframes floatCrown { from { top: -25px; } to { top: -35px; } }
         .confetti { position: fixed; width: 10px; height: 10px; z-index: 9999; animation: fall linear forwards; opacity: 0.8; }
         @keyframes fall { to { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
+
+        /* تصميم نافذة الإحصائيات السرية */
+        #admin-modal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(15,23,42,0.98); border:2px solid var(--gold); padding:25px; border-radius:20px; z-index:9999; text-align:center; box-shadow: 0 0 30px rgba(250, 204, 21, 0.4); width: 80%; max-width: 350px;}
     </style>
 </head>
 <body>
 
 <div class="bg-stars"></div>
 <div id="timer-container"><div id="timer-bar"></div></div>
+
+<div onclick="openAdminStats()" style="position: fixed; bottom: 10px; left: 10px; opacity: 0.05; cursor: pointer; font-size: 14px; z-index: 10000; width: 30px; height: 30px; text-align: center; line-height: 30px;">📊</div>
+
+<div id="admin-modal" class="animate__animated animate__zoomIn">
+    <h2 style="color:var(--gold); margin-top:0;">👑 إحصائيات المخرج</h2>
+    <hr style="border-color: rgba(255,255,255,0.1);">
+    <h3 style="color:white; margin: 15px 0;">المتصلين الآن: <span id="stat-online" style="color:var(--green); font-size: 28px;">0</span></h3>
+    <h3 style="color:white; margin: 15px 0;">إجمالي الزيارات: <span id="stat-total" style="color:var(--main); font-size: 28px;">0</span></h3>
+    <button onclick="document.getElementById('admin-modal').style.display='none'" class="btn-game" style="font-size: 14px; padding: 5px;">إغلاق</button>
+</div>
 
 <button id="exit-btn" style="position:absolute; top:15px; left:15px; z-index:1001; background:none; color:white; border:1px solid white; padding:5px 12px; border-radius:10px; cursor:pointer; font-size: 12px; display:none;" onclick="exitGame()">⬅ خروج</button>
 
@@ -187,14 +200,32 @@
     let allPlayers = {}, myBluffText = "", currentCorrectAnswer = "";
     let selectedAvatarUrl = ""; 
     let selectedCategories = []; 
-    let mainCategoriesMap = {}; // خريطة لتجميع التصنيفات
+    let mainCategoriesMap = {}; 
+
+    // --- سكريبت الإحصائيات السرية ---
+    function openAdminStats() {
+        let pin = prompt("أدخل الرقم السري للمخرج 👑:");
+        if (pin) {
+            socket.emit('requestAdminStats', pin);
+        }
+    }
+
+    socket.on('adminStatsResponse', (data) => {
+        document.getElementById('stat-online').innerText = data.online;
+        document.getElementById('stat-total').innerText = data.total;
+        document.getElementById('admin-modal').style.display = 'block';
+    });
+
+    socket.on('adminStatsError', (msg) => {
+        alert(msg);
+    });
+    // ---------------------------------
 
     function normalizeArabic(text) {
         if (!text) return "";
         return text.replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/[ىي]/g, 'ي').replace(/[\u064B-\u065F]/g, '').trim();
     }
 
-    // فلترة الأزرار عبر صندوق البحث
     function filterCategories() {
         let val = document.getElementById('cat-search').value.toLowerCase();
         let btns = document.querySelectorAll('.cat-btn');
@@ -207,14 +238,10 @@
     fetch('questions.json')
         .then(res => res.json())
         .then(data => {
-            // الخوارزمية الذكية لتجميع التصنيفات
             data.forEach(q => {
                 let rawCat = q.category || q.hint || q.type;
                 if(rawCat && rawCat !== 'text' && rawCat !== 'image') {
-                    // نأخذ الكلمة الرئيسية قبل النقطتين (:)
                     let mainCat = rawCat.split(':')[0].trim();
-                    
-                    // دمج ذكي لتقليل الأقسام
                     if (mainCat.includes('مسلسلات سورية') || mainCat.includes('مصرية') || mainCat.includes('كويتية') || mainCat.includes('سعودية') || mainCat.includes('بدوية')) {
                         mainCat = 'مسلسلات عربية';
                     } else if (mainCat === 'مسلسلات') {
@@ -247,7 +274,6 @@
                         playSnd('click');
                         btn.classList.toggle('selected');
                         
-                        // إضافة أو إزالة كل التصنيفات الفرعية المرتبطة بهذا القسم
                         let subCats = Array.from(mainCategoriesMap[cat]);
                         if(btn.classList.contains('selected')) {
                             subCats.forEach(sc => {
@@ -407,11 +433,10 @@
         
         content.innerHTML += `<div style="background:var(--main); color:white; padding:4px 12px; border-radius:12px; display:inline-block; font-size:13px; font-weight:bold; margin-bottom:10px;">📌 ${qType}</div>`;
         
-        // 🚀 المعالج الذكي للصور: يعرضها وإذا محجوبة يخفيها ويكمل اللعبة طبيعي!
+        // عشان نضمن إذا رجعت تحط صور في المستقبل ما تخرب اللعبة
         const rawImgSrc = d.fullQuestion.image || d.fullQuestion.img || d.fullQuestion.url || d.fullQuestion.picture;
         if (rawImgSrc) {
             let cleanUrl = rawImgSrc.trim();
-            
             content.innerHTML += `<div id="img-container-${d.roundNumber}" style="position:relative; width:100%; min-height:120px; background:rgba(0,0,0,0.2); border-radius:15px; border:1px dashed var(--main); display:flex; align-items:center; justify-content:center; margin-bottom:10px;">
                 <span id="img-loading-${d.roundNumber}" style="color:var(--gold); font-size:12px;" class="animate__animated animate__pulse animate__infinite">جاري سحب الصورة... ⏳</span>
             </div>`;
@@ -440,7 +465,6 @@
                 }
             };
 
-            // إذا انحجبت، تخفي الخطأ ونقول لك خمن بدونها!
             img.onerror = () => {
                 currentProxyIndex++;
                 if (currentProxyIndex < proxies.length) {
@@ -668,8 +692,6 @@
 </script>
 </body>
 </html>
-
-
 
 
 
