@@ -3,16 +3,42 @@ const http = require('http');
 const { Server } = require('socket.io');
 const fs = require('fs');
 const path = require('path');
+const https = require('https'); // استدعينا مكتبة الاتصال الخارجي
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// --- 👑 إحصائيات المخرج 👑 ---
+// --- 👑 إحصائيات المخرج الدائمة 👑 ---
 let totalVisits = 0; 
 let currentOnline = 0; 
 
-// حل مشكلة تحميل ملف الأسئلة (عشان تظهر التصنيفات)
+// دالة سحرية للتواصل مع قاعدة البيانات الخارجية المجانية لحفظ العداد للأبد
+function updateCounterAPI(action) {
+    // استخدمنا مساحة خاصة باسم لعبتك
+    const url = `https://api.counterapi.dev/v1/sualistan_game_v1/total_visits${action}`;
+    https.get(url, (res) => {
+        let data = '';
+        res.on('data', (chunk) => data += chunk);
+        res.on('end', () => {
+            try {
+                const parsed = JSON.parse(data);
+                if (parsed.count !== undefined) {
+                    totalVisits = parsed.count; // تحديث العداد بالرقم الدائم المحفوظ
+                }
+            } catch (e) {}
+        });
+    }).on('error', (err) => {
+        // في حال تعطلت الخدمة الخارجية، يكمل العداد محلياً عشان ما تخرب اللعبة
+        if (action === '/up') totalVisits++; 
+    });
+}
+
+// أول ما يشتغل السيرفر، يروح يسحب الرقم الدائم القديم
+updateCounterAPI('');
+
+
+// حل مشكلة تحميل ملف الأسئلة
 app.get('/questions.json', (req, res) => {
     let qPath = path.join(__dirname, 'questions.json');
     if (!fs.existsSync(qPath)) qPath = path.join(__dirname, 'public', 'questions.json');
@@ -22,6 +48,7 @@ app.get('/questions.json', (req, res) => {
 app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// تحميل الأسئلة للسيرفر للتحكيم
 let allQuestions = [];
 try {
     let qPath = path.join(__dirname, 'questions.json');
@@ -49,12 +76,13 @@ function shuffleArray(array) {
 }
 
 io.on('connection', (socket) => {
-    totalVisits++;
+    // زيادة العداد في قاعدة البيانات الخارجية بشكل دائم!
+    updateCounterAPI('/up');
     currentOnline++;
 
     // 🕵️‍♂️ استقبال طلب الإحصائيات السري من اللعبة
     socket.on('requestAdminStats', (pin) => {
-        // الرقم السري هو 1234 (تقدر تغيره)
+        // الرقم السري هو 1234
         if (pin === '1234') {
             socket.emit('adminStatsResponse', { online: currentOnline, total: totalVisits });
         } else {
@@ -276,7 +304,6 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`🚀 السيرفر شغال على البورت ${PORT}`);
 });
-
 
 
 
