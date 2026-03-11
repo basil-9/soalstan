@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إقليم|سؤالستان 🚀</title>
+    <title>سؤالستان | لعبة الأسئلة والخدع 🚀</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -217,6 +217,12 @@
     };
     function playSnd(s) { sounds[s].play().catch(()=>{}); }
 
+    // استرجاع البيانات المحفوظة تلقائياً عند فتح الصفحة
+    window.onload = () => {
+        if(localStorage.getItem('saved_name')) document.getElementById('player-name').value = localStorage.getItem('saved_name');
+        if(localStorage.getItem('saved_room')) document.getElementById('room-id').value = localStorage.getItem('saved_room');
+    };
+
     function initStars() {
         const sf = document.getElementById('starfield');
         for(let i=0; i<50; i++) {
@@ -388,6 +394,10 @@
 
         if(!n || !r) return alert("اكتب الاسم وكود الغرفة!");
         
+        // حفظ البيانات في المتصفح عشان لو طلع ورجع يلقاها
+        localStorage.setItem('saved_name', n);
+        localStorage.setItem('saved_room', r);
+
         myInfo = { name: n, room: r, avatar: selectedAvatarUrl };
         document.getElementById('display-room-id').innerText = r;
         document.getElementById('total-rounds').innerText = mr; 
@@ -399,7 +409,14 @@
         socket.emit('joinRoom', { roomID: r, name: n, avatar: selectedAvatarUrl, settings: { roundTime: mt, maxRounds: mr, categories: selectedCategories } });
     }
 
-    function exitGame() { playSnd('click'); socket.emit('leaveRoom'); location.reload(); }
+    // تعديل زر الخروج ليطلب تأكيد، واذا رجع يلقى بياناته
+    function exitGame() { 
+        playSnd('click'); 
+        if(confirm("متأكد تبي تطلع من الغرفة؟ \n(لا تخاف بياناتك محفوظة وتقدر ترجع بسرعة بنفس الكود)")) {
+            socket.emit('leaveRoom'); 
+            location.reload(); 
+        }
+    }
 
     socket.on('updateState', d => {
         allPlayers = d.players; isLeader = (d.leader === socket.id);
@@ -465,7 +482,6 @@
         startTimer('bluff');
     });
 
-    // --- التعديل: إزالة رسائل التنبيه المزعجة ووضعها تحت الحقل بنص يهتز ---
     function submitMyBluff() {
         playSnd('click');
         let bluff = document.getElementById('my-bluff').value.trim();
@@ -521,7 +537,6 @@
     socket.on('playerActed', d => {
         if(d.id !== socket.id && !document.getElementById('status-text').innerHTML.includes(d.id)) {
              let act = d.action === 'bluffed' ? "✍️" : "🗳️";
-             // نخفي رسالة "بانتظار البقية" ونحط اسماء اللي جاوبوا
              let sTxt = document.getElementById('status-text');
              if(sTxt.innerHTML.includes("بانتظار")) sTxt.innerHTML = '';
              sTxt.innerHTML += `<span id="${d.id}" class="inline-block bg-white/10 px-2 py-0.5 rounded text-[10px] m-0.5">${allPlayers[d.id].name} ${act}</span>`;
@@ -552,7 +567,13 @@
             let p = d.results[pid];
             let pts = p.pointsGained > 0 ? `<span class="text-success font-bold">(+${p.pointsGained})</span>` : `<span class="text-mutedForeground">(0)</span>`;
             let trick = p.tricked.length > 0 ? `<div class="text-destructive text-[11px] mt-1">خدع: ${p.tricked.join('، ')} 🦊</div>` : "";
+            
             let vote = `<div class="text-[11px] text-mutedForeground mt-1">اختار: <span class="text-white">${p.votedFor||"لم يصوت"}</span></div>`;
+            
+            // التعديل: إظهار الجواب الصح للي يجاوبون غلط فقط
+            if(p.pointsGained === 0) {
+                vote += `<div class="text-[11px] text-success mt-1 font-bold">الجواب الصح: ${d.correctAns} ✅</div>`;
+            }
 
             resHtml += `<div class="bg-secondary/50 border border-border p-3 rounded-xl mb-2 text-sm text-right">
                 <span class="font-bold text-white">${p.name}</span> ${pts} ${vote} ${trick}
@@ -646,6 +667,7 @@
 </script>
 </body>
 </html>
+
 
 
 
