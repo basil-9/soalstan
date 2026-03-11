@@ -19,7 +19,7 @@
                         background: "hsl(0, 0%, 7%)",
                         foreground: "hsl(0, 0%, 92%)",
                         card: "hsl(0, 0%, 12%)",
-                        primary: "hsl(27, 38%, 55%)", // اللون البرونزي الفخم
+                        primary: "hsl(27, 38%, 55%)",
                         secondary: "hsl(0, 0%, 15%)",
                         border: "hsl(0, 0%, 18%)",
                         success: "hsl(142, 71%, 45%)",
@@ -40,7 +40,6 @@
         body { font-family: 'IBM Plex Sans Arabic', sans-serif; background-color: hsl(0, 0%, 7%); color: hsl(0, 0%, 92%); overflow-x: hidden; }
         h1, h2, h3, h4 { font-family: 'Cairo Play', sans-serif; }
         
-        /* تأثيرات الإضاءة والأنيميشن */
         .shimmer-text { background: linear-gradient(90deg, hsl(0, 0%, 92%) 0%, hsl(27, 38%, 55%) 50%, hsl(0, 0%, 92%) 100%); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: shimmer 3s linear infinite; }
         @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
         
@@ -50,12 +49,10 @@
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: hsl(27, 38%, 55%); border-radius: 10px; }
 
-        /* شاشة الدخول (الأنيميشن) */
         #intro-screen { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: hsl(0, 0%, 7%); transition: opacity 0.6s; }
         .intro-title { font-size: 5rem; font-weight: 900; opacity: 0; transform: scale(0.8); transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .intro-flash { opacity: 1; transform: scale(1); color: hsl(27, 38%, 55%); }
 
-        /* الكون والنجوم */
         #starfield { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
         .star { position: absolute; border-radius: 50%; background: hsla(0, 0%, 92%, 0.5); animation: twinkle var(--duration) ease-in-out infinite alternate; animation-delay: var(--delay); }
         @keyframes twinkle { 0% { opacity: 0.2; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1.2); } }
@@ -213,7 +210,6 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-    // --- الأصوات ---
     const sounds = { 
         correct: new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3'), 
         wrong: new Audio('https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3'), 
@@ -221,7 +217,6 @@
     };
     function playSnd(s) { sounds[s].play().catch(()=>{}); }
 
-    // --- الأنيميشن والنجوم ---
     function initStars() {
         const sf = document.getElementById('starfield');
         for(let i=0; i<50; i++) {
@@ -254,7 +249,6 @@
 
     initStars(); initIntro();
 
-    // --- النوافذ المنبثقة ---
     function openAdminStats() {
         let pin = prompt("أدخل الرقم السري للمخرج 👑:");
         if (pin) socket.emit('requestAdminStats', pin);
@@ -265,7 +259,6 @@
         document.getElementById('howto-modal').style.display = 'none';
     }
 
-    // --- منطق اللعبة والسوكيت ---
     const socket = io();
     let myInfo = {}, isLeader = false, timerInt, roomSettings = {};
     let allPlayers = {}, myBluffText = "", currentCorrectAnswer = "";
@@ -286,7 +279,6 @@
         return text.replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/[ىي]/g, 'ي').replace(/[\u064B-\u065F]/g, '').trim();
     }
 
-    // --- الشخصيات (التصميم الجديد) ---
     const AVATAR_STYLES = [
       { style: "micah", seed: "Oliver" }, { style: "adventurer", seed: "Mimi" },
       { style: "micah", seed: "Loki" }, { style: "micah", seed: "Garfield" },
@@ -322,7 +314,6 @@
     }
     renderAvatars();
 
-    // --- التصنيفات ---
     function filterCategories() {
         let val = document.getElementById('cat-search').value.toLowerCase();
         document.querySelectorAll('.cat-btn').forEach(btn => {
@@ -419,7 +410,7 @@
         if (isLeader) { 
             document.getElementById('leader-tag').classList.remove('hidden');
             document.getElementById('start-btn').classList.remove('hidden');
-            document.getElementById('hint-text').innerHTML = "أنت القائد 👑<br><span class="text-sm text-mutedForeground">اضغط بدء متى ما اكتملتوا</span>";
+            document.getElementById('hint-text').innerHTML = `أنت القائد 👑<br><span class="text-sm text-mutedForeground">اضغط بدء متى ما اكتملتوا</span>`;
         } else {
             document.getElementById('leader-tag').classList.add('hidden');
             document.getElementById('start-btn').classList.add('hidden');
@@ -527,7 +518,7 @@
         
         for(let pid in d.results) {
             let p = d.results[pid];
-            let pts = p.pointsGained > 0 ? `<span class="text-success font-bold">(+${p.pointsGained})</span>` : "<span class="text-mutedForeground">(0)</span>";
+            let pts = p.pointsGained > 0 ? `<span class="text-success font-bold">(+${p.pointsGained})</span>` : `<span class="text-mutedForeground">(0)</span>`;
             let trick = p.tricked.length > 0 ? `<div class="text-destructive text-[11px] mt-1">خدع: ${p.tricked.join('، ')} 🦊</div>` : "";
             let vote = `<div class="text-[11px] text-mutedForeground mt-1">اختار: <span class="text-white">${p.votedFor||"لم يصوت"}</span></div>`;
 
@@ -629,10 +620,6 @@
 </script>
 </body>
 </html>
-
-
-
-
 
 
 
