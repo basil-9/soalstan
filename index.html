@@ -3,209 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إقليم - سؤالستان 🚀</title>
+    <title>سؤالستان | لعبة الأسئلة والخدع 🚀</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo+Play:wght@700;900&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        background: "hsl(0, 0%, 7%)",
+                        foreground: "hsl(0, 0%, 92%)",
+                        card: "hsl(0, 0%, 12%)",
+                        primary: "hsl(27, 38%, 55%)", // اللون البرونزي الفخم
+                        secondary: "hsl(0, 0%, 15%)",
+                        border: "hsl(0, 0%, 18%)",
+                        success: "hsl(142, 71%, 45%)",
+                        gold: "hsl(43, 96%, 56%)",
+                        muted: "hsl(0, 0%, 15%)",
+                        mutedForeground: "hsl(0, 0%, 60%)"
+                    },
+                    fontFamily: {
+                        heading: ['"Cairo Play"', 'sans-serif'],
+                        body: ['"IBM Plex Sans Arabic"', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        :root { --main: #a855f7; --gold: #facc15; --red: #ef4444; --green: #22c55e; }
-        body { margin: 0; background: #0b0e14; color: white; font-family: 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; overflow-x: hidden; min-height: 100vh; }
-        .bg-stars { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: radial-gradient(circle, #1e1b4b 0%, #020617 100%); }
+        body { font-family: 'IBM Plex Sans Arabic', sans-serif; background-color: hsl(0, 0%, 7%); color: hsl(0, 0%, 92%); overflow-x: hidden; }
+        h1, h2, h3, h4 { font-family: 'Cairo Play', sans-serif; }
         
-        .card { background: rgba(15, 23, 42, 0.95); border: 3px solid var(--main); border-radius: 30px; width: 92vw; max-width: 500px; min-height: 80vh; padding: 20px; position: relative; display: flex; flex-direction: column; align-items: center; box-shadow: 0 0 30px rgba(168, 85, 247, 0.2); margin: 15px 0; }
+        /* تأثيرات الإضاءة والأنيميشن */
+        .shimmer-text { background: linear-gradient(90deg, hsl(0, 0%, 92%) 0%, hsl(27, 38%, 55%) 50%, hsl(0, 0%, 92%) 100%); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: shimmer 3s linear infinite; }
+        @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
         
-        #timer-container { position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: rgba(255,255,255,0.1); display: none; z-index: 1000; border-radius: 30px 30px 0 0; overflow: hidden; }
-        #timer-bar { height: 100%; width: 100%; background: var(--main); transition: 0.1s linear; }
+        .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+        @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 0 0 hsla(27, 38%, 55%, 0); } 50% { box-shadow: 0 0 15px 5px hsla(27, 38%, 55%, 0.3); } }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: hsl(27, 38%, 55%); border-radius: 10px; }
 
-        .btn-game { background: none; border: 2px solid var(--gold); color: var(--gold); padding: 10px 20px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; width: 100%; margin-top: 10px; }
-        .btn-game:hover { background: var(--gold); color: black; }
-        
-        .input-box { background: rgba(255,255,255,0.05); border: 1px solid var(--main); color: white; padding: 10px; border-radius: 12px; text-align: center; font-size: 16px; width: 100%; margin: 5px 0; box-sizing: border-box; }
-        .select-box { background: #1e1b4b; border: 2px solid var(--main); color: white; padding: 10px; border-radius: 12px; text-align: center; font-size: 16px; width: 100%; margin: 5px 0; cursor: pointer; outline: none; appearance: none; -webkit-appearance: none; }
-        .select-box option { background-color: #0b0e14; color: white; }
+        /* شاشة الدخول (الأنيميشن) */
+        #intro-screen { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: hsl(0, 0%, 7%); transition: opacity 0.6s; }
+        .intro-title { font-size: 5rem; font-weight: 900; opacity: 0; transform: scale(0.8); transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .intro-flash { opacity: 1; transform: scale(1); color: hsl(27, 38%, 55%); }
 
-        #result-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; padding: 25px; border-radius: 20px; display: none; text-align: center; z-index: 200; backdrop-filter: blur(15px); border: 4px solid; background: rgba(0,0,0,0.95); box-sizing: border-box; }
-        
-        .top-info-bar { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 15px; width: 100%; position: relative; margin-bottom: 10px; box-sizing: border-box; }
-        #real-time-clock { position: absolute; left: 50%; transform: translateX(-50%); color: var(--gold); font-weight: bold; font-size: 14px; border: 1px solid rgba(250, 204, 21, 0.3); padding: 2px 8px; border-radius: 8px; white-space: nowrap; }
-        
-        #players-scores { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; width: 100%; font-size: 14px; margin-top: 5px; }
-        .score-pill { background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 8px; font-weight: bold; border: 1px solid rgba(255,255,255,0.2); }
+        /* الكون والنجوم */
+        #starfield { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+        .star { position: absolute; border-radius: 50%; background: hsla(0, 0%, 92%, 0.5); animation: twinkle var(--duration) ease-in-out infinite alternate; animation-delay: var(--delay); }
+        @keyframes twinkle { 0% { opacity: 0.2; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1.2); } }
 
-        .avatar-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; max-height: 100px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 15px; border: 1px solid rgba(168, 85, 247, 0.4); }
-        .avatar-item { width: 50px; height: 50px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: 0.2s; background: rgba(255,255,255,0.05); }
-        .avatar-item:hover { transform: scale(1.1); }
-        .avatar-item.selected { border-color: var(--gold); transform: scale(1.1); box-shadow: 0 0 10px var(--gold); background: rgba(250, 204, 21, 0.2); }
-        
-        .cat-wrapper { margin-top: 10px; width: 100%; max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 15px; border: 1px solid var(--main); box-sizing: border-box; }
-        .cat-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-        .cat-btn { background: #1d4ed8; color: white; border: 2px solid #1e3a8a; border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-        .cat-btn:hover { transform: scale(1.05); }
-        .cat-btn.selected { background: var(--main); border-color: var(--gold); box-shadow: 0 0 8px var(--gold); }
-        
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: var(--main); border-radius: 10px; }
-
-        .podium-container { display: flex; align-items: flex-end; justify-content: center; gap: 15px; margin-top: 30px; margin-bottom: 20px; }
-        .podium-rank { display: flex; flex-direction: column; align-items: center; }
-        .podium-1 { transform: scale(1.25); z-index: 10; margin: 0 15px; position: relative; }
-        .podium-avatar { border-radius: 50%; border: 3px solid; background: rgba(0,0,0,0.5); box-shadow: 0 0 15px; object-fit: cover; }
-        .podium-1 .podium-avatar { border-color: #fbbf24; box-shadow: 0 0 25px #fbbf24; width: 85px; height: 85px; }
-        .podium-2 .podium-avatar { border-color: #cbd5e1; box-shadow: 0 0 15px #cbd5e1; width: 65px; height: 65px; }
-        .podium-3 .podium-avatar { border-color: #b45309; box-shadow: 0 0 15px #b45309; width: 60px; height: 60px; }
-        .podium-name { font-weight: bold; margin-top: 8px; font-size: 13px; text-align: center; max-width: 90px; word-wrap: break-word; }
-        .podium-score { color: var(--gold); font-size: 11px; background: rgba(0,0,0,0.6); padding: 2px 8px; border-radius: 10px; margin-top: 4px; }
-        .crown { font-size: 35px; position: absolute; top: -30px; left: 50%; transform: translateX(-50%); animation: floatCrown 1.5s infinite alternate ease-in-out; text-shadow: 0 0 10px #fbbf24; }
-        @keyframes floatCrown { from { top: -25px; } to { top: -35px; } }
         .confetti { position: fixed; width: 10px; height: 10px; z-index: 9999; animation: fall linear forwards; opacity: 0.8; }
         @keyframes fall { to { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
-
-        /* نوافذ الإحصائيات وكيف تلعب */
-        .modal-box { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(15,23,42,0.98); padding:25px; border-radius:20px; z-index:9999; text-align:center; width: 85%; max-width: 350px; }
-        #admin-modal { border:2px solid var(--gold); box-shadow: 0 0 30px rgba(250, 204, 21, 0.4); }
-        #howto-modal { border:2px solid var(--green); box-shadow: 0 0 30px rgba(34, 197, 94, 0.4); text-align: right; }
     </style>
 </head>
-<body>
+<body class="min-h-screen flex items-center justify-center p-4 relative">
 
-<div class="bg-stars"></div>
-<div id="timer-container"><div id="timer-bar"></div></div>
-
-<div onclick="openAdminStats()" style="position: fixed; bottom: 10px; left: 10px; opacity: 0.05; cursor: pointer; font-size: 14px; z-index: 10000; width: 30px; height: 30px; text-align: center; line-height: 30px;">📊</div>
-
-<div id="admin-modal" class="modal-box animate__animated animate__zoomIn">
-    <h2 style="color:var(--gold); margin-top:0;">👑 إحصائيات المخرج</h2>
-    <hr style="border-color: rgba(255,255,255,0.1);">
-    <h3 style="color:white; margin: 15px 0;">المتصلين الآن: <span id="stat-online" style="color:var(--green); font-size: 28px;">0</span></h3>
-    <h3 style="color:white; margin: 15px 0;">إجمالي الزيارات: <span id="stat-total" style="color:var(--main); font-size: 28px;">0</span></h3>
-    <button onclick="document.getElementById('admin-modal').style.display='none'" class="btn-game" style="font-size: 14px; padding: 5px;">إغلاق</button>
-</div>
-
-<div id="howto-modal" class="modal-box animate__animated animate__fadeIn">
-    <h2 style="color:var(--green); text-align:center; margin-top:0;">كيف تلعب سؤالستان؟ 🎮</h2>
-    <hr style="border-color: rgba(255,255,255,0.1);">
-    <ul style="line-height: 1.8; font-size: 14px; padding-right: 20px; color: white;">
-        <li>القائد ينسخ <b>كود الغرفة</b> ويرسله لأخوياه.</li>
-        <li>يطلع لك سؤال، وكل واحد يكتب <b>إجابة كذبية (خدعة)</b> عشان يوهق الباقين.</li>
-        <li>تطلع كل الإجابات (الصح + الكذب)، ولازم تختار الجواب الحقيقي بدون ما تطيح بالفخ.</li>
-        <li>إذا جاوبت صح تاخذ <b>50 نقطة</b> ✅.</li>
-        <li>إذا أحد اختار كذبتك تاخذ <b>20 نقطة</b> على كل ضحية طاح بفخك 🦊.</li>
-        <li>الجولة الأخيرة حاسمة ونقاطها <b>مضاعفة</b> 🔥.</li>
-    </ul>
-    <div style="text-align:center; margin-top: 15px;">
-        <button onclick="document.getElementById('howto-modal').style.display='none'" class="btn-game" style="font-size: 14px; padding: 5px 15px; border-color:var(--green); color:var(--green);">فهمت، يلا نلعب!</button>
+    <div id="intro-screen">
+        <h1 id="intro-text" class="intro-title font-heading">سؤالستان</h1>
     </div>
-</div>
 
-<button id="exit-btn" style="position:absolute; top:15px; left:15px; z-index:1001; background:none; color:white; border:1px solid white; padding:5px 12px; border-radius:10px; cursor:pointer; font-size: 12px; display:none;" onclick="exitGame()">⬅ خروج</button>
+    <div id="starfield"></div>
 
-<div id="join-screen" class="card">
-    <h1 style="font-size: 45px; color: var(--main); text-shadow: 0 0 15px var(--main); margin: 10px 0;">سؤالستان</h1>
+    <div id="timer-container" class="fixed top-0 left-0 w-full h-1.5 bg-white/10 hidden z-50 rounded-b-full">
+        <div id="timer-bar" class="h-full bg-primary transition-all duration-100 ease-linear w-full"></div>
+    </div>
+
+    <div onclick="openAdminStats()" class="fixed bottom-2 left-2 opacity-5 cursor-pointer text-sm z-50 w-8 h-8 flex items-center justify-center">📊</div>
+
+    <div id="modal-overlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden" onclick="closeModals()"></div>
     
-    <div style="width: 100%; max-width: 320px;">
-        <input type="text" id="player-name" class="input-box" placeholder="اكتب اسمك">
-        <div style="display: flex; gap: 5px;">
-            <input type="text" id="room-id" class="input-box" placeholder="كود الغرفة">
-            <button class="btn-game" style="width: 50px; margin-top: 5px; padding: 5px;" onclick="generateCode()">🎲</button>
-        </div>
-        
-        <div style="margin-top: 15px; width: 100%;">
-            <label style="font-size:13px; color: var(--gold); font-weight: bold;">اختر شخصيتك 🎭</label>
-            <div id="avatar-selection" class="avatar-grid"></div>
-        </div>
+    <div id="admin-modal" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[85%] max-w-sm bg-card border border-gold rounded-2xl p-6 z-50 hidden shadow-[0_0_30px_rgba(250,204,21,0.2)] text-center">
+        <h2 class="text-gold text-2xl mb-4 font-heading">👑 إحصائيات المخرج</h2>
+        <div class="h-px bg-border mb-4"></div>
+        <h3 class="text-white mb-3">المتصلين الآن: <span id="stat-online" class="text-success text-3xl font-bold block mt-1">0</span></h3>
+        <h3 class="text-white mb-5">إجمالي الزيارات: <span id="stat-total" class="text-primary text-3xl font-bold block mt-1">0</span></h3>
+        <button onclick="closeModals()" class="px-6 py-2 rounded-xl border border-gold text-gold hover:bg-gold/10 transition">إغلاق</button>
+    </div>
 
-        <div style="margin-top: 15px; width: 100%;">
-            <label style="font-size:13px; color: var(--gold); font-weight: bold;">اختر التصنيفات (للقائد فقط) 📚</label>
-            <div class="cat-wrapper">
-                <input type="text" id="cat-search" class="input-box" style="margin-bottom: 10px; padding: 8px; font-size: 13px; border-color: rgba(250, 204, 21, 0.5);" placeholder="🔍 ابحث عن قسم..." onkeyup="filterCategories()">
-                <div id="categories-grid" class="cat-grid">
-                    <span style="font-size:12px; color:#9ca3af;">جاري تجميع التصنيفات... ⏳</span>
+    <div id="howto-modal" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-card border border-success rounded-2xl p-6 z-50 hidden shadow-[0_0_30px_rgba(34,197,94,0.2)]">
+        <button onclick="closeModals()" class="absolute top-4 left-4 text-mutedForeground hover:text-white">✕</button>
+        <h2 class="text-success text-2xl mb-4 font-heading text-center">كيف تلعب سؤالستان؟ 🎮</h2>
+        <div class="h-px bg-border mb-4"></div>
+        <ul class="space-y-3 text-sm text-foreground/90 mb-6">
+            <li class="flex gap-2"><span class="text-lg">📋</span> القائد ينسخ كود الغرفة ويرسله لأخوياه.</li>
+            <li class="flex gap-2"><span class="text-lg">✍️</span> يطلع لك سؤال، وكل واحد يكتب إجابة كذبية (خدعة).</li>
+            <li class="flex gap-2"><span class="text-lg">🎯</span> تطلع كل الإجابات، اختار الحقيقي بدون ما تطيح بالفخ.</li>
+            <li class="flex gap-2"><span class="text-lg">✅</span> الجواب الصح يعطيك <b class="text-success">50 نقطة</b>.</li>
+            <li class="flex gap-2"><span class="text-lg">🦊</span> إذا أحد اختار كذبتك تاخذ <b class="text-primary">20 نقطة</b>.</li>
+            <li class="flex gap-2"><span class="text-lg">🔥</span> الجولة الأخيرة حاسمة ونقاطها <b>مضاعفة</b>!</li>
+        </ul>
+        <button onclick="closeModals()" class="w-full py-2.5 rounded-xl border border-success text-success hover:bg-success/10 font-bold transition">فهمت، يلا نلعب!</button>
+    </div>
+
+    <button id="exit-btn" class="fixed top-4 left-4 z-40 bg-card/50 border border-border text-white px-3 py-1.5 rounded-lg text-xs hidden hover:bg-card" onclick="exitGame()">⬅ خروج</button>
+
+    <div id="main-container" class="relative z-10 w-full max-w-md hidden opacity-0 transition-opacity duration-500">
+        
+        <div id="join-screen" class="w-full">
+            <div class="text-center mb-6">
+                <h1 class="font-heading text-5xl font-black shimmer-text mb-2">سؤالستان</h1>
+                <div class="w-16 h-1 bg-primary mx-auto rounded-full shadow-[0_0_10px_rgba(205,116,56,0.5)]"></div>
+            </div>
+
+            <div class="bg-card/80 backdrop-blur-md border border-border rounded-2xl p-5 sm:p-7 shadow-xl space-y-5">
+                
+                <input type="text" id="player-name" placeholder="اكتب اسمك" class="w-full bg-secondary border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-mutedForeground focus:outline-none focus:border-primary/60 transition-colors">
+                
+                <div class="flex gap-2">
+                    <input type="text" id="room-id" placeholder="كود الغرفة" class="flex-1 bg-secondary border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-mutedForeground focus:outline-none focus:border-primary/60 transition-colors tracking-widest text-center uppercase">
+                    <button onclick="generateCode()" class="shrink-0 w-12 h-12 rounded-xl border border-border bg-secondary flex items-center justify-center text-primary hover:bg-primary/10 transition-colors" title="كود عشوائي">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><circle cx="15.5" cy="8.5" r="1.5"></circle><circle cx="15.5" cy="15.5" r="1.5"></circle><circle cx="8.5" cy="15.5" r="1.5"></circle></svg>
+                    </button>
+                </div>
+
+                <div>
+                    <label class="text-xs font-semibold text-gold mb-2 block">اختر شخصيتك 🎭</label>
+                    <div id="avatar-selection" class="grid grid-cols-5 gap-2"></div>
+                </div>
+
+                <div>
+                    <label class="text-xs font-semibold text-gold mb-2 block">اختر التصنيفات (للقائد) 📚</label>
+                    <div class="relative mb-2">
+                        <input type="text" id="cat-search" onkeyup="filterCategories()" placeholder="🔍 ابحث عن قسم..." class="w-full bg-secondary border border-gold/30 rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-mutedForeground focus:outline-none focus:border-gold/60">
+                    </div>
+                    <div id="categories-grid" class="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto custom-scrollbar p-1">
+                        <span class="text-xs text-mutedForeground col-span-3 text-center">جاري التحميل...</span>
+                    </div>
+                    <p class="text-[10px] text-mutedForeground text-center mt-2">(إذا لم تختر شيء، ستلعب بجميع الأسئلة)</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[11px] text-gold block mb-1">وقت الجولة</label>
+                        <select id="set-time" class="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary/60">
+                            <option value="15">15 ثانية</option><option value="20">20 ثانية</option><option value="30" selected>30 ثانية</option><option value="45">45 ثانية</option><option value="60">60 ثانية</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[11px] text-gold block mb-1">عدد الجولات</label>
+                        <select id="set-rounds" class="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary/60">
+                            <option value="5">5 جولات</option><option value="10" selected>10 جولات</option><option value="20">20 جولة</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="space-y-3 pt-2">
+                    <button onclick="joinGame()" class="w-full py-3.5 rounded-xl bg-primary text-background font-heading font-bold text-lg hover:brightness-110 transition-all shadow-lg active:scale-95">دخول اللعبة 🚀</button>
+                    <button onclick="document.getElementById('modal-overlay').style.display='block'; document.getElementById('howto-modal').style.display='block';" class="w-full py-2.5 rounded-xl border border-success/50 text-success text-sm hover:bg-success/10 transition-colors font-bold active:scale-95">كيف تلعب ❓</button>
                 </div>
             </div>
-            <div style="font-size:10px; color:#9ca3af; text-align:center; margin-top:5px;">(إذا لم تختر شيء، ستلعب بجميع الأسئلة)</div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
-            <div>
-                <label style="font-size:11px; color: var(--gold);">وقت الجولة</label>
-                <select id="set-time" class="select-box">
-                    <option value="15">15 ثانية</option>
-                    <option value="20">20 ثانية</option>
-                    <option value="25">25 ثانية</option>
-                    <option value="30" selected>30 ثانية</option>
-                    <option value="35">35 ثانية</option>
-                    <option value="40">40 ثانية</option>
-                    <option value="45">45 ثانية</option>
-                    <option value="60">60 ثانية</option>
-                </select>
+        <div id="game-screen" class="hidden w-full">
+            <div class="bg-card/90 backdrop-blur-md border border-border rounded-2xl p-4 shadow-xl relative min-h-[70vh] flex flex-col">
+                
+                <div id="result-overlay" class="absolute inset-0 bg-black/95 z-40 rounded-2xl hidden flex-col items-center justify-center p-4 border-2 border-gold text-center">
+                    <h1 id="result-status" class="font-heading text-3xl text-gold mb-4"></h1>
+                    <div id="result-detail" class="w-full max-h-[60vh] overflow-y-auto custom-scrollbar"></div>
+                </div>
+
+                <div class="flex justify-between items-center bg-black/40 p-2.5 rounded-xl mb-4 border border-border">
+                    <div class="text-gold font-bold text-xs">جولة: <span id="current-round">1</span>/<span id="total-rounds">10</span></div>
+                    <div id="real-time-clock" class="text-gold font-bold text-[11px] border border-gold/30 px-2 py-0.5 rounded-md">00:00</div>
+                    <div onclick="copyRoomCode()" class="text-xs cursor-pointer bg-white/5 px-2 py-1 rounded-md hover:bg-white/10 flex items-center gap-1"><span id="display-room-id">---</span> 📋</div>
+                </div>
+
+                <div id="players-scores" class="flex flex-wrap gap-2 justify-center mb-4 text-xs"></div>
+
+                <div id="leader-tag" class="hidden text-gold font-bold text-[11px] text-center mb-2 bg-gold/10 py-1 rounded-md border border-gold/30">👑 أنت القائد</div>
+
+                <div id="win-screen" class="hidden flex-col items-center flex-1 justify-center animate__animated animate__zoomIn">
+                    <div id="winner-text" class="w-full text-center"></div>
+                    <button id="restart-btn" class="hidden mt-6 bg-primary text-background py-2.5 px-6 rounded-xl font-bold hover:brightness-110 active:scale-95" onclick="socket.emit('restartGame')">إعادة اللعب بنفس الغرفة 🔄</button>
+                    <div id="wait-restart-text" class="hidden mt-6 text-gold text-sm animate__pulse animate__infinite">بانتظار القائد لإعادة اللعبة... ⏳</div>
+                </div>
+
+                <div id="lobby-area" class="flex-1 flex flex-col items-center justify-center text-center">
+                    <h2 class="text-primary font-heading text-xl mb-3">اللاعبين المتصلين:</h2>
+                    <div id="players-list" class="w-full border border-dashed border-primary/50 rounded-xl p-4 min-h-[120px] mb-6 flex flex-wrap gap-3 justify-center items-center">بانتظار اللاعبين...</div>
+                    <h2 id="hint-text" class="text-lg mb-4 text-white/90">بانتظار القائد...</h2>
+                    <button id="start-btn" class="hidden w-full py-3 rounded-xl border-2 border-success text-success font-bold hover:bg-success/10 transition text-lg shadow-[0_0_15px_rgba(34,197,94,0.2)]" onclick="socket.emit('requestGameStart')">بدء اللعبة 🚀</button>
+                </div>
+
+                <div id="question-area" class="hidden flex-1 flex flex-col text-center">
+                    <div id="decisive-alert" class="hidden mb-3"><span class="bg-destructive text-white px-3 py-1 rounded-lg text-xs font-bold animate__animated animate__flash animate__infinite">🔥 الجولة الحاسمة: النقاط مضاعفة! 🔥</span></div>
+                    
+                    <div id="q-content" class="flex-1 flex flex-col justify-center mb-6"></div>
+                    
+                    <div id="bluff-area" class="hidden mt-auto">
+                        <input type="text" id="my-bluff" class="w-full bg-secondary border border-primary rounded-xl px-4 py-3 text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/50 mb-3" placeholder="اكتب إجابة مضللة لخدعهم...">
+                        <button onclick="submitMyBluff()" class="w-full py-3 rounded-xl bg-primary/20 border border-primary text-primary font-bold hover:bg-primary hover:text-background transition">أرسل الخدعة 🕵️‍♂️</button>
+                    </div>
+
+                    <div id="options" class="hidden grid-cols-1 gap-2 mt-auto"></div>
+                    <div id="status-text" class="mt-4 text-gold text-xs h-6"></div>
+                </div>
+
             </div>
-            <div>
-                <label style="font-size:11px; color: var(--gold);">عدد الجولات</label>
-                <select id="set-rounds" class="select-box">
-                    <option value="5">5 جولات</option>
-                    <option value="10" selected>10 جولات</option>
-                    <option value="20">20 جولة</option>
-                </select>
-            </div>
-        </div>
-
-        <button class="btn-game" style="background:var(--main); color:white; border:none; margin-top: 15px;" onclick="joinGame()">دخول اللعبة 🚀</button>
-        <button class="btn-game" style="background:transparent; border-color:var(--green); color:var(--green); margin-top: 10px; font-size: 15px;" onclick="document.getElementById('howto-modal').style.display='block'">كيف تلعب ❓</button>
-    </div>
-</div>
-
-<div id="game-screen" style="display: none; width: 100vw; justify-content: center;">
-    <div class="card">
-        <div id="result-overlay" class="animate__animated">
-            <h1 id="result-status" style="font-size:35px;"></h1>
-            <p id="result-detail" style="font-size:18px;"></p>
-        </div>
-
-        <div class="top-info-bar">
-            <div id="round-counter" style="color: var(--gold); font-weight: bold; font-size: 13px;">جولة: <span id="current-round">1</span>/<span id="total-rounds">10</span></div>
-            <div id="real-time-clock">00:00:00</div>
-            <div onclick="copyRoomCode()" style="font-size: 12px; cursor: pointer; border:1px solid rgba(255,255,255,0.2); padding: 2px 5px; border-radius: 5px;"><span id="display-room-id">---</span> 📋</div>
-        </div>
-        
-        <div id="players-scores"></div>
-
-        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 10px 0;">
-            <div id="leader-tag" style="display:none; color: var(--gold); font-weight: bold; font-size: 12px;">👑 أنت القائد</div>
-        </div>
-
-        <div id="win-screen" class="animate__animated zoomIn" style="display:none; text-align:center; width: 100%; max-height: 85vh; overflow-y: auto;">
-            <div id="winner-text" style="color: white; margin: 10px 0;"></div>
-            <button id="restart-btn" class="btn-game animate__animated animate__pulse animate__infinite" style="background:var(--main); color:white; border:none; margin-top:20px; display:none;" onclick="socket.emit('restartGame')">إعادة اللعب بنفس الغرفة 🔄</button>
-            <h3 id="wait-restart-text" style="color:var(--gold); margin-top:20px; display:none; font-size:16px;">بانتظار القائد لإعادة اللعبة... ⏳</h3>
-            <button class="btn-game" style="border-color:var(--red); color:var(--red); margin-top:10px; font-size: 14px; padding: 5px; margin-bottom: 20px;" onclick="exitGame()">خروج من الغرفة 🚪</button>
-        </div>
-        
-        <div id="lobby-area" style="text-align: center; width: 100%; margin-top: 5px;">
-            <h2 style="font-size: 18px; color: var(--main); margin-bottom: 10px;">اللاعبين المتصلين:</h2>
-            <div id="players-list" style="margin-bottom: 20px; padding: 15px; border: 1px dashed var(--main); border-radius: 15px; min-height: 100px;">بانتظار انضمام اللاعبين...</div>
-            <h2 id="hint-text" style="font-size: 22px; padding: 10px;">بانتظار القائد لبدء اللعبة...</h2>
-            <div id="leader-controls" style="display:none; margin-top: 10px; gap: 5px; justify-content: center;">
-                <button id="start-btn" class="btn-game" style="width: 100%; border-color: var(--green); color: var(--green);" onclick="socket.emit('requestGameStart')">بدء اللعبة 🚀</button>
-            </div>
-        </div>
-
-        <div id="question-area" style="display: none; text-align: center; width: 100%;">
-            <div id="decisive-alert" style="display:none; margin-bottom: 10px;">
-                <div class="animate__animated animate__flash animate__infinite" style="background:var(--red); color:white; padding:5px 15px; border-radius:12px; font-weight:bold; display:inline-block; font-size: 14px;">🔥 الجولة الحاسمة: النقاط مضاعفة! 🔥</div>
-            </div>
-
-            <div id="q-content"></div>
-            <div id="bluff-area" style="display: none; margin-top: 15px; width: 100%;">
-                <input type="text" id="my-bluff" class="input-box" placeholder="اكتب إجابة مضللة لخدعهم...">
-                <button class="btn-game" onclick="submitMyBluff()">أرسل الخدعة 🕵️‍♂️</button>
-            </div>
-            <div id="options" style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 15px; width: 100%; display: none;"></div>
-            
-            <div id="status-text" style="margin-top: 15px; color: var(--gold); font-size: 14px;"></div>
         </div>
     </div>
-</div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
+    // --- الأصوات ---
     const sounds = { 
         correct: new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3'), 
         wrong: new Audio('https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3'), 
@@ -213,144 +221,160 @@
     };
     function playSnd(s) { sounds[s].play().catch(()=>{}); }
 
+    // --- الأنيميشن والنجوم ---
+    function initStars() {
+        const sf = document.getElementById('starfield');
+        for(let i=0; i<50; i++) {
+            let s = document.createElement('div');
+            s.className = 'star';
+            s.style.left = Math.random() * 100 + '%';
+            s.style.top = Math.random() * 100 + '%';
+            s.style.width = s.style.height = (Math.random() * 2 + 1) + 'px';
+            s.style.setProperty('--duration', (Math.random() * 3 + 2) + 's');
+            s.style.setProperty('--delay', (Math.random() * 5) + 's');
+            sf.appendChild(s);
+        }
+    }
+    
+    function initIntro() {
+        const title = document.getElementById('intro-text');
+        const screen = document.getElementById('intro-screen');
+        const main = document.getElementById('main-container');
+        
+        setTimeout(() => title.classList.add('intro-flash'), 1000);
+        setTimeout(() => {
+            screen.style.opacity = '0';
+            setTimeout(() => {
+                screen.style.display = 'none';
+                main.classList.remove('hidden');
+                setTimeout(() => main.style.opacity = '1', 50);
+            }, 600);
+        }, 2200);
+    }
+
+    initStars(); initIntro();
+
+    // --- النوافذ المنبثقة ---
+    function openAdminStats() {
+        let pin = prompt("أدخل الرقم السري للمخرج 👑:");
+        if (pin) socket.emit('requestAdminStats', pin);
+    }
+    function closeModals() {
+        document.getElementById('modal-overlay').style.display = 'none';
+        document.getElementById('admin-modal').style.display = 'none';
+        document.getElementById('howto-modal').style.display = 'none';
+    }
+
+    // --- منطق اللعبة والسوكيت ---
     const socket = io();
     let myInfo = {}, isLeader = false, timerInt, roomSettings = {};
     let allPlayers = {}, myBluffText = "", currentCorrectAnswer = "";
     let selectedAvatarUrl = ""; 
     let selectedCategories = []; 
-    let mainCategoriesMap = {}; 
+    let mainCategoriesMap = {};
 
-    // --- سكريبت الإحصائيات السرية ---
-    function openAdminStats() {
-        let pin = prompt("أدخل الرقم السري للمخرج 👑:");
-        if (pin) {
-            socket.emit('requestAdminStats', pin);
-        }
-    }
-
-    socket.on('adminStatsResponse', (data) => {
-        document.getElementById('stat-online').innerText = data.online;
-        document.getElementById('stat-total').innerText = data.total;
+    socket.on('adminStatsResponse', (d) => {
+        document.getElementById('stat-online').innerText = d.online;
+        document.getElementById('stat-total').innerText = d.total;
+        document.getElementById('modal-overlay').style.display = 'block';
         document.getElementById('admin-modal').style.display = 'block';
     });
-
-    socket.on('adminStatsError', (msg) => {
-        alert(msg);
-    });
-    // ---------------------------------
+    socket.on('adminStatsError', (m) => alert(m));
 
     function normalizeArabic(text) {
         if (!text) return "";
         return text.replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/[ىي]/g, 'ي').replace(/[\u064B-\u065F]/g, '').trim();
     }
 
-    function filterCategories() {
-        let val = document.getElementById('cat-search').value.toLowerCase();
-        let btns = document.querySelectorAll('.cat-btn');
-        btns.forEach(btn => {
-            if(btn.innerText.toLowerCase().includes(val)) btn.style.display = 'flex';
-            else btn.style.display = 'none';
-        });
-    }
+    // --- الشخصيات (التصميم الجديد) ---
+    const AVATAR_STYLES = [
+      { style: "micah", seed: "Oliver" }, { style: "adventurer", seed: "Mimi" },
+      { style: "micah", seed: "Loki" }, { style: "micah", seed: "Garfield" },
+      { style: "bottts", seed: "Abby" }, { style: "adventurer", seed: "Tinkerbell" },
+      { style: "fun-emoji", seed: "Coco" }, { style: "bottts", seed: "Socks" },
+      { style: "adventurer", seed: "Simba" }, { style: "bottts", seed: "Leo" },
+      { style: "bottts", seed: "Milo" }, { style: "bottts", seed: "Cleo" },
+      { style: "adventurer", seed: "Jack" }, { style: "micah", seed: "Luna" },
+      { style: "bottts", seed: "Bella" }, { style: "fun-emoji", seed: "Max" },
+      { style: "fun-emoji", seed: "Rocky" }, { style: "adventurer", seed: "Zoe" },
+      { style: "bottts", seed: "Sam" }, { style: "fun-emoji", seed: "Mia" }
+    ];
 
-    fetch('questions.json')
-        .then(res => res.json())
-        .then(data => {
-            data.forEach(q => {
-                let rawCat = q.category || q.hint || q.type;
-                if(rawCat && rawCat !== 'text' && rawCat !== 'image') {
-                    let mainCat = rawCat.split(':')[0].trim();
-                    if (mainCat.includes('مسلسلات سورية') || mainCat.includes('مصرية') || mainCat.includes('كويتية') || mainCat.includes('سعودية') || mainCat.includes('بدوية')) {
-                        mainCat = 'مسلسلات عربية';
-                    } else if (mainCat === 'مسلسلات') {
-                        mainCat = 'مسلسلات أجنبية';
-                    } else if (mainCat.includes('أفلام')) {
-                        mainCat = 'أفلام سينمائية';
-                    } else if (mainCat.includes('ألعاب') || mainCat.includes('ألعاب فيديو')) {
-                        mainCat = 'ألعاب فيديو';
-                    } else if (mainCat.includes('شعارات')) {
-                        mainCat = 'شعارات وتطبيقات';
-                    } else if (mainCat.includes('تكنولوجيا') || mainCat.includes('برمجة')) {
-                        mainCat = 'تقنية وبرمجة';
-                    }
-
-                    if(!mainCategoriesMap[mainCat]) mainCategoriesMap[mainCat] = new Set();
-                    mainCategoriesMap[mainCat].add(rawCat);
-                }
-            });
-
-            let catArray = Object.keys(mainCategoriesMap).sort();
-            const grid = document.getElementById('categories-grid');
-            grid.innerHTML = '';
+    function renderAvatars() {
+        const box = document.getElementById('avatar-selection');
+        AVATAR_STYLES.forEach((av, i) => {
+            let url = `https://api.dicebear.com/7.x/${av.style}/svg?seed=${av.seed}&backgroundColor=1a1a1a`;
+            let btn = document.createElement('button');
+            btn.className = `rounded-xl overflow-hidden border-2 transition-all p-0.5 ${i===0 ? 'border-primary animate-pulse-glow' : 'border-transparent hover:border-primary/40'}`;
+            btn.innerHTML = `<img src="${url}" class="w-full aspect-square rounded-lg bg-black/50">`;
+            if(i===0) selectedAvatarUrl = url;
             
-            if(catArray.length > 0) {
-                catArray.forEach(cat => {
-                    let btn = document.createElement('div');
-                    btn.className = 'cat-btn';
-                    btn.innerText = cat;
-                    btn.onclick = () => {
-                        playSnd('click');
-                        btn.classList.toggle('selected');
-                        
-                        let subCats = Array.from(mainCategoriesMap[cat]);
-                        if(btn.classList.contains('selected')) {
-                            subCats.forEach(sc => {
-                                if(!selectedCategories.includes(sc)) selectedCategories.push(sc);
-                            });
-                        } else {
-                            selectedCategories = selectedCategories.filter(sc => !subCats.includes(sc));
-                        }
-                    };
-                    grid.appendChild(btn);
+            btn.onclick = (e) => {
+                e.preventDefault(); playSnd('click');
+                document.querySelectorAll('#avatar-selection button').forEach(b => {
+                    b.className = 'rounded-xl overflow-hidden border-2 transition-all p-0.5 border-transparent hover:border-primary/40';
                 });
-            } else {
-                grid.innerHTML = '<span style="font-size:12px; color:#9ca3af;">لا توجد تصنيفات محددة</span>';
-            }
-        })
-        .catch(e => {
-            document.getElementById('categories-grid').innerHTML = '<span style="font-size:12px; color:#ef4444;">خطأ في تحميل التصنيفات</span>';
-        });
-
-    function generateAvatars() {
-        const styles = ['bottts', 'adventurer', 'fun-emoji', 'micah'];
-        const seeds = ['Oliver', 'Mimi', 'Loki', 'Garfield', 'Abby', 'Tinkerbell', 'Coco', 'Socks', 'Simba', 'Leo', 'Milo', 'Cleo', 'Jack', 'Luna', 'Bella', 'Max', 'Rocky', 'Zoe', 'Sam', 'Mia'];
-        const avatarBox = document.getElementById('avatar-selection');
-        
-        seeds.forEach((seed, index) => {
-            let randomStyle = styles[Math.floor(Math.random() * styles.length)];
-            let url = `https://api.dicebear.com/7.x/${randomStyle}/svg?seed=${seed}&backgroundColor=1e1b4b`;
-            
-            let img = document.createElement('img');
-            img.src = url;
-            img.className = 'avatar-item';
-            
-            if(index === 0) {
-                img.classList.add('selected');
-                selectedAvatarUrl = url;
-            }
-
-            img.onclick = () => {
-                playSnd('click');
-                document.querySelectorAll('.avatar-item').forEach(el => el.classList.remove('selected'));
-                img.classList.add('selected');
+                btn.className = 'rounded-xl overflow-hidden border-2 transition-all p-0.5 border-primary animate-pulse-glow';
                 selectedAvatarUrl = url;
             };
-            avatarBox.appendChild(img);
+            box.appendChild(btn);
         });
     }
-    generateAvatars();
+    renderAvatars();
+
+    // --- التصنيفات ---
+    function filterCategories() {
+        let val = document.getElementById('cat-search').value.toLowerCase();
+        document.querySelectorAll('.cat-btn').forEach(btn => {
+            btn.style.display = btn.innerText.toLowerCase().includes(val) ? 'block' : 'none';
+        });
+    }
+
+    fetch('questions.json').then(r => r.json()).then(data => {
+        data.forEach(q => {
+            let cat = q.category || q.hint || q.type;
+            if(cat && cat !== 'text' && cat !== 'image') {
+                let mainCat = cat.split(':')[0].trim();
+                if(!mainCategoriesMap[mainCat]) mainCategoriesMap[mainCat] = new Set();
+                mainCategoriesMap[mainCat].add(cat);
+            }
+        });
+        let catArray = Object.keys(mainCategoriesMap).sort();
+        const grid = document.getElementById('categories-grid');
+        grid.innerHTML = '';
+        if(catArray.length > 0) {
+            catArray.forEach(cat => {
+                let btn = document.createElement('button');
+                btn.className = 'cat-btn text-[11px] py-1.5 px-1 rounded-lg border border-border bg-secondary/50 text-mutedForeground hover:border-primary/40 transition-all truncate';
+                btn.innerText = cat;
+                btn.onclick = () => {
+                    playSnd('click');
+                    let isSel = btn.classList.contains('border-primary');
+                    if(isSel) {
+                        btn.className = 'cat-btn text-[11px] py-1.5 px-1 rounded-lg border border-border bg-secondary/50 text-mutedForeground hover:border-primary/40 transition-all truncate';
+                        let subCats = Array.from(mainCategoriesMap[cat]);
+                        selectedCategories = selectedCategories.filter(sc => !subCats.includes(sc));
+                    } else {
+                        btn.className = 'cat-btn text-[11px] py-1.5 px-1 rounded-lg border border-primary bg-primary/15 text-primary transition-all truncate';
+                        let subCats = Array.from(mainCategoriesMap[cat]);
+                        subCats.forEach(sc => { if(!selectedCategories.includes(sc)) selectedCategories.push(sc); });
+                    }
+                };
+                grid.appendChild(btn);
+            });
+        }
+    }).catch(()=>{ document.getElementById('categories-grid').innerHTML = '<span class="text-xs text-destructive col-span-3">خطأ بالتحميل</span>'; });
 
     function updateClock() {
-        const now = new Date();
-        const clockElement = document.getElementById('real-time-clock');
-        if(clockElement) clockElement.innerText = now.toLocaleTimeString('ar-SA', { hour12: false });
+        const el = document.getElementById('real-time-clock');
+        if(el) el.innerText = new Date().toLocaleTimeString('ar-SA', { hour12: false, hour: '2-digit', minute:'2-digit' });
     }
     setInterval(updateClock, 1000); updateClock();
 
     function generateCode() { 
         playSnd('click'); document.getElementById('room-id').value = "GAME-" + Math.floor(1000 + Math.random() * 9000); 
     }
-    function copyRoomCode() { navigator.clipboard.writeText(myInfo.room); alert("تم نسخ الكود!"); }
+    function copyRoomCode() { navigator.clipboard.writeText(myInfo.room); alert("تم النسخ!"); }
 
     function joinGame() {
         playSnd('click');
@@ -359,105 +383,77 @@
         const mt = parseInt(document.getElementById('set-time').value);
         const mr = parseInt(document.getElementById('set-rounds').value);
 
-        if(!n || !r) return alert("الرجاء كتابة الاسم وكود الغرفة!");
+        if(!n || !r) return alert("اكتب الاسم وكود الغرفة!");
         
         myInfo = { name: n, room: r, avatar: selectedAvatarUrl };
         document.getElementById('display-room-id').innerText = r;
         document.getElementById('total-rounds').innerText = mr; 
         
-        document.getElementById('join-screen').style.display = 'none';
-        document.getElementById('game-screen').style.display = 'flex';
-        document.getElementById('exit-btn').style.display = 'block'; 
+        document.getElementById('join-screen').classList.add('hidden');
+        document.getElementById('game-screen').classList.remove('hidden');
+        document.getElementById('exit-btn').classList.remove('hidden');
         
-        socket.emit('joinRoom', { 
-            roomID: r, 
-            name: n, 
-            avatar: selectedAvatarUrl, 
-            settings: { roundTime: mt, maxRounds: mr, categories: selectedCategories } 
-        });
+        socket.emit('joinRoom', { roomID: r, name: n, avatar: selectedAvatarUrl, settings: { roundTime: mt, maxRounds: mr, categories: selectedCategories } });
     }
 
-    function exitGame() {
-        playSnd('click'); socket.emit('leaveRoom'); location.reload();
-    }
+    function exitGame() { playSnd('click'); socket.emit('leaveRoom'); location.reload(); }
 
     socket.on('updateState', d => {
-        allPlayers = d.players;
-        isLeader = (d.leader === socket.id);
+        allPlayers = d.players; isLeader = (d.leader === socket.id);
         if (d.settings) roomSettings = d.settings;
         
-        const scoresDiv = document.getElementById('players-scores');
-        scoresDiv.innerHTML = '';
-        
-        const lobbyList = document.getElementById('players-list');
-        lobbyList.innerHTML = '';
-        let lobbyHtml = '<div style="display:flex; flex-wrap:wrap; gap:15px; justify-content:center;">';
+        const scoresDiv = document.getElementById('players-scores'); scoresDiv.innerHTML = '';
+        const lobbyList = document.getElementById('players-list'); lobbyList.innerHTML = '';
 
         for(let id in allPlayers) {
             let p = allPlayers[id];
-            scoresDiv.innerHTML += `<div class="score-pill" style="${(id === socket.id) ? 'color:var(--gold)' : ''}">${p.name}: <span>${p.points}</span></div>`;
+            scoresDiv.innerHTML += `<div class="bg-white/5 px-3 py-1 rounded-md border border-white/10 ${id===socket.id ? 'text-gold border-gold/30' : ''}">${p.name}: <span class="font-bold">${p.points}</span></div>`;
             
-            let isLeaderBadge = (d.leader === id) ? '👑' : '';
-            lobbyHtml += `
-            <div class="animate__animated animate__zoomIn" style="display:flex; flex-direction:column; align-items:center; background:rgba(255,255,255,0.05); padding:10px; border-radius:15px; border:1px solid var(--main); width:80px;">
-                <img src="${p.avatar}" style="width:60px; height:60px; border-radius:50%; background:rgba(0,0,0,0.3); margin-bottom:5px;">
-                <span style="color:white; font-size:12px; font-weight:bold; text-align:center; word-break:break-word;">${p.name} ${isLeaderBadge}</span>
+            lobbyList.innerHTML += `
+            <div class="flex flex-col items-center bg-card border border-border p-2 rounded-xl w-20 shadow-sm animate__animated animate__zoomIn">
+                <img src="${p.avatar}" class="w-14 h-14 rounded-full bg-black/50 mb-2 border-2 ${d.leader===id ? 'border-gold' : 'border-transparent'}">
+                <span class="text-[10px] font-bold truncate w-full text-center">${p.name}</span>
             </div>`;
         }
-        lobbyHtml += '</div>';
-        lobbyList.innerHTML = lobbyHtml;
 
-        if (document.getElementById('lobby-area').style.display !== 'none') {
-            if (isLeader) { 
-                document.getElementById('leader-tag').style.display = 'block'; 
-                document.getElementById('leader-controls').style.display = 'flex'; 
-                document.getElementById('hint-text').innerText = "أنت القائد! متى ما اكتملتوا اضغط بدء 🚀";
-            } else {
-                document.getElementById('leader-tag').style.display = 'none'; 
-                document.getElementById('leader-controls').style.display = 'none'; 
-                document.getElementById('hint-text').innerText = "بانتظار القائد لبدء اللعبة...";
-            }
+        if (isLeader) { 
+            document.getElementById('leader-tag').classList.remove('hidden');
+            document.getElementById('start-btn').classList.remove('hidden');
+            document.getElementById('hint-text').innerHTML = "أنت القائد 👑<br><span class="text-sm text-mutedForeground">اضغط بدء متى ما اكتملتوا</span>";
+        } else {
+            document.getElementById('leader-tag').classList.add('hidden');
+            document.getElementById('start-btn').classList.add('hidden');
+            document.getElementById('hint-text').innerText = "بانتظار القائد...";
         }
     });
 
     socket.on('gameRestarted', () => {
-        document.getElementById('win-screen').style.display = 'none';
-        document.getElementById('lobby-area').style.display = 'block';
+        document.getElementById('win-screen').classList.add('hidden');
+        document.getElementById('lobby-area').classList.remove('hidden');
+        document.getElementById('question-area').classList.add('hidden');
         document.getElementById('current-round').innerText = '1';
         document.querySelectorAll('.confetti').forEach(e => e.remove());
-        
-        if (isLeader) { 
-            document.getElementById('leader-controls').style.display = 'flex'; 
-            document.getElementById('hint-text').innerText = "أنت القائد! متى ما اكتملتوا اضغط بدء 🚀";
-        } else {
-            document.getElementById('leader-controls').style.display = 'none'; 
-            document.getElementById('hint-text').innerText = "بانتظار القائد لبدء اللعبة...";
-        }
     });
 
     socket.on('startBluffPhase', d => {
         currentCorrectAnswer = d.fullQuestion.a; 
-        document.getElementById('lobby-area').style.display = 'none';
-        document.getElementById('question-area').style.display = 'block';
+        document.getElementById('lobby-area').classList.add('hidden');
+        document.getElementById('question-area').classList.remove('hidden');
         document.getElementById('current-round').innerText = d.roundNumber;
         document.getElementById('status-text').innerHTML = '';
         
-        document.getElementById('decisive-alert').style.display = d.isDecisive ? 'block' : 'none';
-        
-        const content = document.getElementById('q-content'); 
-        content.innerHTML = ''; // تنظيف الشاشة بالكامل
+        if(d.isDecisive) document.getElementById('decisive-alert').classList.remove('hidden');
+        else document.getElementById('decisive-alert').classList.add('hidden');
         
         let qType = d.fullQuestion.category || d.fullQuestion.hint || 'سؤال عام';
-        if (qType === 'text' || qType === 'image') qType = 'سؤال عام';
         
-        content.innerHTML += `<div style="background:var(--main); color:white; padding:4px 12px; border-radius:12px; display:inline-block; font-size:13px; font-weight:bold; margin-bottom:10px;">📌 ${qType}</div>`;
+        document.getElementById('q-content').innerHTML = `
+            <div class="bg-primary/20 text-primary px-3 py-1 rounded-lg text-xs font-bold inline-block mx-auto mb-4 border border-primary/30">📌 ${qType}</div>
+            <h1 class="text-2xl font-heading text-white leading-relaxed px-2">${d.fullQuestion.q}</h1>
+        `;
         
-        // --- 🚫 تم إزالة كود الصور بالكامل لضمان سرعة اللعبة 🚫 ---
-        
-        content.innerHTML += `<h1 style="font-size: 22px; color: var(--main); margin: 5px 0 0 0;">${d.fullQuestion.q}</h1>`;
-        
-        document.getElementById('bluff-area').style.display = 'block';
-        document.getElementById('options').style.display = 'none';
+        document.getElementById('bluff-area').classList.remove('hidden');
+        document.getElementById('options').classList.add('hidden');
         document.getElementById('my-bluff').value = '';
         document.getElementById('my-bluff').disabled = false;
         
@@ -467,37 +463,37 @@
     function submitMyBluff() {
         playSnd('click');
         let bluff = document.getElementById('my-bluff').value.trim();
-        
-        if(!bluff) return alert("اكتب أي إجابة عشان تخدعهم!");
-        if(normalizeArabic(bluff) === normalizeArabic(currentCorrectAnswer)) {
-            return alert("لقد كتبت الاجابة الصحيحة بالفعل، اكتب اجابة اخرى لكي تخدع اصدقائك!");
-        }
+        if(!bluff) return alert("اكتب إجابة للخدعة!");
+        if(normalizeArabic(bluff) === normalizeArabic(currentCorrectAnswer)) return alert("هذي الإجابة الصح! اكتب شيء غلط للخدعة");
 
         myBluffText = bluff;
-        document.getElementById('bluff-area').style.display = 'none';
-        document.getElementById('status-text').innerHTML = '<p class="animate__animated animate__pulse animate__infinite" style="color:var(--gold);">تم الحفظ! بانتظار البقية يكتبون خدعهم...</p>';
+        document.getElementById('bluff-area').classList.add('hidden');
+        document.getElementById('status-text').innerHTML = '<span class="animate__animated animate__pulse animate__infinite text-gold">تم الحفظ! بانتظار البقية...</span>';
         socket.emit('submitBluff', { bluff: bluff });
     }
 
     socket.on('startVotingPhase', d => {
         clearInterval(timerInt);
-        document.getElementById('bluff-area').style.display = 'none';
-        document.getElementById('options').style.display = 'grid';
-        document.getElementById('status-text').innerHTML = '<p style="color:var(--main);">اختر الإجابة الصحيحة بدون ما تطيح بفخ أصدقائك!</p>';
+        document.getElementById('bluff-area').classList.add('hidden');
+        const opts = document.getElementById('options');
+        opts.classList.remove('hidden');
+        opts.classList.add('grid');
+        opts.innerHTML = '';
+        document.getElementById('status-text').innerHTML = '<span class="text-primary">اختر الإجابة الصح بدون ما تطيح بالفخ!</span>';
         
-        const opts = document.getElementById('options'); opts.innerHTML = '';
         d.options.forEach(o => {
-            const b = document.createElement('button'); b.className = 'btn-game'; b.innerText = o;
+            const b = document.createElement('button'); 
+            b.className = 'py-3 px-4 rounded-xl border border-border bg-secondary text-white font-bold hover:border-gold hover:text-gold transition text-sm';
+            b.innerText = o;
             
             if (o === myBluffText) {
-                b.disabled = true; b.style.opacity = "0.3"; b.innerText += " (إجابتك)";
+                b.disabled = true; b.className += ' opacity-30 cursor-not-allowed'; b.innerText += " (إجابتك)";
             } else {
                 b.onclick = () => { 
                     playSnd('click'); 
-                    b.style.background = 'white'; b.style.color = 'black';
-                    const allBtns = document.querySelectorAll('#options .btn-game');
-                    allBtns.forEach(btn => btn.disabled = true);
-                    document.getElementById('status-text').innerHTML = '<p class="animate__animated animate__pulse animate__infinite" style="color:var(--gold);">تم التصويت! بانتظار النتيجة...</p>';
+                    b.className = 'py-3 px-4 rounded-xl border-2 border-primary bg-primary/20 text-white font-bold transition text-sm';
+                    document.querySelectorAll('#options button').forEach(btn => btn.disabled = true);
+                    document.getElementById('status-text').innerHTML = '<span class="animate__animated animate__pulse animate__infinite text-success">تم التصويت! بانتظار النتيجة...</span>';
                     socket.emit('submitVote', { vote: o }); 
                 };
             }
@@ -508,29 +504,22 @@
     });
 
     socket.on('playerActed', d => {
-        if(d.id !== socket.id) {
-            let actMsg = d.action === 'bluffed' ? "كتب إجابته ✍️" : "صوت 🗳️";
-            if(!document.getElementById('status-text').innerHTML.includes(d.id)) {
-                 document.getElementById('status-text').innerHTML += `<div id="${d.id}" style="font-size:12px;">${allPlayers[d.id].name} ${actMsg}</div>`;
-            }
+        if(d.id !== socket.id && !document.getElementById('status-text').innerHTML.includes(d.id)) {
+             let act = d.action === 'bluffed' ? "✍️" : "🗳️";
+             document.getElementById('status-text').innerHTML += `<span id="${d.id}" class="inline-block bg-white/10 px-2 py-0.5 rounded text-[10px] m-0.5">${allPlayers[d.id].name} ${act}</span>`;
         }
     });
 
     socket.on('roundResult', d => {
-        clearInterval(timerInt); 
-        document.getElementById('timer-container').style.display = 'none';
+        clearInterval(timerInt); document.getElementById('timer-container').style.display = 'none';
         
         const ov = document.getElementById('result-overlay');
-        ov.className = 'animate__animated zoomIn'; ov.style.display = 'block'; 
-        ov.style.borderColor = 'var(--gold)'; ov.style.color = 'var(--gold)';
-        
+        ov.style.display = 'flex';
         document.getElementById('result-status').innerText = "نتائج الجولة";
-
-        // --- 🛠️ حل مشكلة (جاري تحضير الجولة) اللي تعلق 🛠️ ---
-        // نخفي الأزرار والصندوق فوراً ونحط النص وراء النافذة، عشان لما تقفل النافذة تلقاه جاهز
-        document.getElementById('options').style.display = 'none';
-        document.getElementById('bluff-area').style.display = 'none';
-        document.getElementById('q-content').innerHTML = '<h2 class="animate__animated animate__pulse animate__infinite" style="color:var(--gold); padding: 40px 0;">جاري تحضير الجولة التالية... ⏳</h2>';
+        
+        document.getElementById('options').classList.add('hidden');
+        document.getElementById('bluff-area').classList.add('hidden');
+        document.getElementById('q-content').innerHTML = '<h2 class="animate__animated animate__pulse animate__infinite text-gold text-xl my-10 font-heading">جاري تحضير الجولة... ⏳</h2>';
         document.getElementById('status-text').innerHTML = '';
         
         let resHtml = "";
@@ -538,47 +527,40 @@
         
         for(let pid in d.results) {
             let p = d.results[pid];
-            let details = p.pointsGained > 0 ? `<span style="color:var(--green)">(+${p.pointsGained})</span>` : "(0)";
-            let trickInfo = p.tricked.length > 0 ? `<br><span style="color:var(--red);font-size:12px;">خدع: ${p.tricked.join('، ')}</span>` : "";
-            
-            let voteText = p.votedFor ? p.votedFor : "لم يصوت";
-            let voteChoice = `<br><span style="color:#94a3b8;font-size:12px;">اختار: <span style="color:white;">${voteText}</span></span>`;
+            let pts = p.pointsGained > 0 ? `<span class="text-success font-bold">(+${p.pointsGained})</span>` : "<span class="text-mutedForeground">(0)</span>";
+            let trick = p.tricked.length > 0 ? `<div class="text-destructive text-[11px] mt-1">خدع: ${p.tricked.join('، ')} 🦊</div>` : "";
+            let vote = `<div class="text-[11px] text-mutedForeground mt-1">اختار: <span class="text-white">${p.votedFor||"لم يصوت"}</span></div>`;
 
-            resHtml += `<div style="font-size:14px; margin:5px 0; background:rgba(0,0,0,0.5); padding:5px; border-radius:5px;">
-                ${p.name}: ${details} ${voteChoice} ${trickInfo}
+            resHtml += `<div class="bg-secondary/50 border border-border p-3 rounded-xl mb-2 text-sm text-right">
+                <span class="font-bold text-white">${p.name}</span> ${pts} ${vote} ${trick}
             </div>`;
         }
 
         document.getElementById('result-detail').innerHTML = `
-            <div style="margin-bottom:10px;">${resHtml}</div>
-            الجواب الحقيقي: <span style="color:var(--green); font-size:22px;">${d.correctAns}</span>
+            <div class="mb-4 w-full">${resHtml}</div>
+            <div class="bg-success/20 border border-success p-3 rounded-xl">
+                <span class="text-xs text-white block mb-1">الجواب الحقيقي:</span>
+                <span class="text-success text-2xl font-bold">${d.correctAns}</span>
+            </div>
         `;
 
         if(myRes.pointsGained > 0) playSnd('correct'); else playSnd('wrong');
-
-        setTimeout(() => { 
-            ov.style.display = 'none'; 
-            document.getElementById('decisive-alert').style.display = 'none'; 
-        }, 6000); 
+        setTimeout(() => { ov.style.display = 'none'; document.getElementById('decisive-alert').classList.add('hidden'); }, 6000); 
     });
 
     function startTimer(phase) {
         if(timerInt) clearInterval(timerInt);
         document.getElementById('timer-container').style.display = 'block';
         
-        // 🛠️ حل مشكلة الوقت: تأكدنا إنه يسحب الوقت الصح من الإعدادات
         let rTime = (roomSettings && roomSettings.roundTime) ? roomSettings.roundTime : 30;
-        let timeLeft = 100; 
-        let step = 100 / (rTime * 10);
+        let timeLeft = 100; let step = 100 / (rTime * 10);
         
         timerInt = setInterval(() => { 
             timeLeft -= step; 
             document.getElementById('timer-bar').style.width = timeLeft + '%'; 
-            
             if(timeLeft <= 0) {
                 clearInterval(timerInt); 
-                document.getElementById('status-text').innerHTML = '<h3 style="color:var(--red);">انتهى الوقت! ⏳</h3>';
-                
+                document.getElementById('status-text').innerHTML = '<span class="text-destructive font-bold">انتهى الوقت! ⏳</span>';
                 if (isLeader) {
                     if (phase === 'bluff') socket.emit('timeoutBluffAll');
                     else if (phase === 'vote') socket.emit('timeoutVoteAll');
@@ -590,99 +572,63 @@
     function fireConfetti() {
         const colors = ['#facc15', '#a855f7', '#ef4444', '#22c55e', '#3b82f6'];
         for(let i=0; i<80; i++) {
-            let conf = document.createElement('div');
-            conf.className = 'confetti';
-            conf.style.left = Math.random() * 100 + 'vw';
-            conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-            conf.style.animationDuration = (Math.random() * 3 + 2) + 's';
-            conf.style.animationDelay = Math.random() * 2 + 's';
-            document.body.appendChild(conf);
+            let c = document.createElement('div');
+            c.className = 'confetti';
+            c.style.left = Math.random() * 100 + 'vw';
+            c.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            c.style.animationDuration = (Math.random() * 3 + 2) + 's';
+            c.style.animationDelay = Math.random() * 2 + 's';
+            document.body.appendChild(c);
         }
     }
 
     socket.on('gameOver', d => {
-        document.getElementById('lobby-area').style.display = 'none';
-        document.getElementById('question-area').style.display = 'none';
+        document.getElementById('lobby-area').classList.add('hidden');
+        document.getElementById('question-area').classList.add('hidden');
         document.getElementById('timer-container').style.display = 'none';
         
         let pArray = Object.values(d.players).sort((a,b) => b.points - a.points);
         
-        let html = `<h1 style="font-size: 35px; color: var(--gold); text-shadow: 0 0 20px var(--gold);">🏆 أبطال سؤالستان 🏆</h1>`;
-        html += `<div class="podium-container">`;
+        let html = `<h1 class="text-4xl font-heading text-gold mb-8 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]">🏆 أبطال سؤالستان</h1><div class="flex items-end justify-center gap-4 mb-8">`;
         
-        if(pArray[1]) {
-            html += `<div class="podium-rank podium-2 animate__animated animate__fadeInUp" style="animation-delay: 0.5s">
-                        <img src="${pArray[1].avatar}" class="podium-avatar">
-                        <div class="podium-name" style="color: #cbd5e1;">🥈 ${pArray[1].name}</div>
-                        <div class="podium-score">${pArray[1].points} نقطة</div>
-                     </div>`;
-        }
+        if(pArray[1]) html += `<div class="flex flex-col items-center animate__animated animate__fadeInUp" style="animation-delay: 0.5s"><img src="${pArray[1].avatar}" class="w-16 h-16 rounded-full border-4 border-slate-300 bg-black/50 shadow-[0_0_15px_rgba(203,213,225,0.5)]"><span class="text-slate-300 font-bold mt-2 text-sm truncate w-20">🥈 ${pArray[1].name}</span><span class="text-xs bg-black/50 px-2 py-0.5 rounded-full mt-1 text-gold">${pArray[1].points}</span></div>`;
+        if(pArray[0]) html += `<div class="flex flex-col items-center relative z-10 mx-2 animate__animated animate__zoomIn"><div class="absolute -top-8 text-4xl drop-shadow-[0_0_10px_rgba(250,204,21,0.8)]">👑</div><img src="${pArray[0].avatar}" class="w-24 h-24 rounded-full border-4 border-gold bg-black/50 shadow-[0_0_25px_rgba(250,204,21,0.6)]"><span class="text-gold font-bold mt-2 text-base truncate w-24">🥇 ${pArray[0].name}</span><span class="text-xs bg-black/50 px-3 py-1 rounded-full mt-1 text-gold border border-gold/30">${pArray[0].points}</span></div>`;
+        if(pArray[2]) html += `<div class="flex flex-col items-center animate__animated animate__fadeInUp" style="animation-delay: 1s"><img src="${pArray[2].avatar}" class="w-14 h-14 rounded-full border-4 border-amber-700 bg-black/50 shadow-[0_0_15px_rgba(180,83,9,0.5)]"><span class="text-amber-600 font-bold mt-2 text-sm truncate w-20">🥉 ${pArray[2].name}</span><span class="text-xs bg-black/50 px-2 py-0.5 rounded-full mt-1 text-gold">${pArray[2].points}</span></div>`;
         
-        if(pArray[0]) {
-            html += `<div class="podium-rank podium-1 animate__animated animate__zoomIn">
-                        <div class="crown">👑</div>
-                        <img src="${pArray[0].avatar}" class="podium-avatar">
-                        <div class="podium-name" style="color: #fbbf24;">🥇 ${pArray[0].name}</div>
-                        <div class="podium-score">${pArray[0].points} نقطة</div>
-                     </div>`;
-        }
-        
-        if(pArray[2]) {
-            html += `<div class="podium-rank podium-3 animate__animated animate__fadeInUp" style="animation-delay: 1s">
-                        <img src="${pArray[2].avatar}" class="podium-avatar">
-                        <div class="podium-name" style="color: #d97706;">🥉 ${pArray[2].name}</div>
-                        <div class="podium-score">${pArray[2].points} نقطة</div>
-                     </div>`;
-        }
         html += `</div>`;
 
         if(pArray.length > 3) {
-            html += `<div style="background: rgba(0,0,0,0.5); border: 1px solid var(--main); padding: 10px; border-radius: 15px; margin-top: 15px; max-height: 120px; overflow-y: auto;">`;
-            for(let i=3; i<pArray.length; i++) {
-                html += `<div style="color: white; font-size:13px; margin-bottom: 8px; display:flex; align-items:center; justify-content:center; gap:10px;">
-                    <span>${i+1}.</span> <img src="${pArray[i].avatar}" style="width:25px; height:25px; border-radius:50%; background:rgba(0,0,0,0.3);"> ${pArray[i].name} (${pArray[i].points} نقطة)
-                </div>`;
-            }
+            html += `<div class="bg-black/30 border border-border rounded-xl p-3 max-h-32 overflow-y-auto custom-scrollbar mb-4 w-full">`;
+            for(let i=3; i<pArray.length; i++) html += `<div class="flex justify-between text-xs text-white/80 py-1 border-b border-white/5 last:border-0"><span>${i+1}. ${pArray[i].name}</span><span>${pArray[i].points} نقطة</span></div>`;
             html += `</div>`;
         }
 
         if (d.titles.bluffer || d.titles.victim || d.titles.nerd) {
-            html += `<div class="animate__animated animate__bounceInUp" style="margin-top:20px; background:rgba(255,255,255,0.05); padding:15px; border-radius:15px; border:1px solid var(--gold); text-align: right;">
-                        <h3 style="color:var(--gold); margin-top:0; text-align:center; font-size: 16px;">🎭 ألقاب الشرف والفضايح 🎭</h3>`;
-            if (d.titles.bluffer) html += `<div style="margin:8px 0; font-size: 14px;">🦊 <b style="color:var(--gold);">أكبر نصاب:</b> ${d.titles.bluffer}</div>`;
-            if (d.titles.victim) html += `<div style="margin:8px 0; font-size: 14px;">🤡 <b style="color:var(--red);">الضحية:</b> ${d.titles.victim}</div>`;
-            if (d.titles.nerd) html += `<div style="margin:8px 0; font-size: 14px;">🤓 <b style="color:var(--green);">الدافور:</b> ${d.titles.nerd}</div>`;
+            html += `<div class="bg-secondary/50 border border-gold/50 rounded-xl p-4 text-right animate__animated animate__bounceInUp w-full">
+                <h3 class="text-gold text-center font-heading text-lg mb-3">🎭 ألقاب الشرف والفضايح</h3>`;
+            if (d.titles.bluffer) html += `<div class="text-sm mb-2">🦊 <span class="text-gold font-bold">أكبر نصاب:</span> ${d.titles.bluffer}</div>`;
+            if (d.titles.victim) html += `<div class="text-sm mb-2">🤡 <span class="text-destructive font-bold">الضحية:</span> ${d.titles.victim}</div>`;
+            if (d.titles.nerd) html += `<div class="text-sm">🤓 <span class="text-success font-bold">الدافور:</span> ${d.titles.nerd}</div>`;
             html += `</div>`;
         }
             
         document.getElementById('winner-text').innerHTML = html;
-        document.getElementById('win-screen').style.display = 'block';
+        document.getElementById('win-screen').classList.remove('hidden');
+        document.getElementById('win-screen').classList.add('flex');
         
         if(isLeader) {
-            document.getElementById('restart-btn').style.display = 'inline-block';
-            document.getElementById('wait-restart-text').style.display = 'none';
+            document.getElementById('restart-btn').classList.remove('hidden');
+            document.getElementById('wait-restart-text').classList.add('hidden');
         } else {
-            document.getElementById('restart-btn').style.display = 'none';
-            document.getElementById('wait-restart-text').style.display = 'block';
+            document.getElementById('restart-btn').classList.add('hidden');
+            document.getElementById('wait-restart-text').classList.remove('hidden');
         }
         
-        playSnd('correct');
-        fireConfetti(); 
+        playSnd('correct'); fireConfetti(); 
     });
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
 
 
 
