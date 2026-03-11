@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>سؤالستان | لعبة الأسئلة والخدع 🚀</title>
+    <title>إقليم|سؤالستان 🚀</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -195,13 +195,13 @@
                     
                     <div id="q-content" class="flex-1 flex flex-col justify-center mb-6"></div>
                     
-                    <div id="bluff-area" class="hidden mt-auto">
+                    <div id="bluff-area" class="hidden mt-auto relative">
                         <input type="text" id="my-bluff" class="w-full bg-secondary border border-primary rounded-xl px-4 py-3 text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/50 mb-3" placeholder="اكتب إجابة مضللة لخدعهم...">
                         <button onclick="submitMyBluff()" class="w-full py-3 rounded-xl bg-primary/20 border border-primary text-primary font-bold hover:bg-primary hover:text-background transition">أرسل الخدعة 🕵️‍♂️</button>
                     </div>
 
                     <div id="options" class="hidden grid-cols-1 gap-2 mt-auto"></div>
-                    <div id="status-text" class="mt-4 text-gold text-xs h-6"></div>
+                    <div id="status-text" class="mt-4 text-gold text-xs h-8 flex items-center justify-center"></div>
                 </div>
 
             </div>
@@ -279,7 +279,6 @@
         return text.replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/[ىي]/g, 'ي').replace(/[\u064B-\u065F]/g, '').trim();
     }
 
-    // --- التعديل الثاني: التحقق من التكلجة والإجابات المشابهة ---
     function isTooSimilar(a, b) {
         a = normalizeArabic(a); b = normalizeArabic(b);
         if(a === b) return true;
@@ -374,7 +373,6 @@
     }
     setInterval(updateClock, 1000); updateClock();
 
-    // --- التعديل الأول: كود الغرفة أرقام فقط ---
     function generateCode() { 
         playSnd('click'); 
         document.getElementById('room-id').value = Math.floor(10000 + Math.random() * 90000).toString(); 
@@ -442,7 +440,7 @@
 
     socket.on('startBluffPhase', d => {
         currentCorrectAnswer = d.fullQuestion.a;
-        currentQuestionText = d.fullQuestion.q; // حفظ السؤال عشان نعرضه بالنتيجة
+        currentQuestionText = d.fullQuestion.q;
 
         document.getElementById('lobby-area').classList.add('hidden');
         document.getElementById('question-area').classList.remove('hidden');
@@ -467,19 +465,25 @@
         startTimer('bluff');
     });
 
+    // --- التعديل: إزالة رسائل التنبيه المزعجة ووضعها تحت الحقل بنص يهتز ---
     function submitMyBluff() {
         playSnd('click');
         let bluff = document.getElementById('my-bluff').value.trim();
-        if(!bluff) return alert("اكتب إجابة للخدعة!");
+        let statusDiv = document.getElementById('status-text');
+
+        if(!bluff) {
+            statusDiv.innerHTML = '<span class="text-destructive font-bold text-sm animate__animated animate__headShake">اكتب إجابة مضللة أولاً! ✍️</span>';
+            return;
+        }
         
-        // استخدام دالة التكلجة الجديدة
         if(isTooSimilar(bluff, currentCorrectAnswer)) {
-            return alert("الإجابة هذي صحيحة أو قريبة جداً من الصح! اكتب شيء غلط عشان تخدعهم 🦊");
+            statusDiv.innerHTML = '<span class="text-destructive font-bold text-sm animate__animated animate__headShake">إجابتك صحيحة (أو قريبة جداً)! اكتب شيء غلط للخدعة 🦊</span>';
+            return;
         }
 
         myBluffText = bluff;
         document.getElementById('bluff-area').classList.add('hidden');
-        document.getElementById('status-text').innerHTML = '<span class="animate__animated animate__pulse animate__infinite text-gold">تم الحفظ! بانتظار البقية...</span>';
+        statusDiv.innerHTML = '<span class="animate__animated animate__pulse animate__infinite text-gold font-bold text-sm">تم الحفظ! بانتظار البقية...</span>';
         socket.emit('submitBluff', { bluff: bluff });
     }
 
@@ -490,7 +494,7 @@
         opts.classList.remove('hidden');
         opts.classList.add('grid');
         opts.innerHTML = '';
-        document.getElementById('status-text').innerHTML = '<span class="text-primary">اختر الإجابة الصح بدون ما تطيح بالفخ!</span>';
+        document.getElementById('status-text').innerHTML = '<span class="text-primary font-bold text-sm">اختر الإجابة الصح بدون ما تطيح بالفخ!</span>';
         
         d.options.forEach(o => {
             const b = document.createElement('button'); 
@@ -504,7 +508,7 @@
                     playSnd('click'); 
                     b.className = 'py-3 px-4 rounded-xl border-2 border-primary bg-primary/20 text-white font-bold transition text-sm';
                     document.querySelectorAll('#options button').forEach(btn => btn.disabled = true);
-                    document.getElementById('status-text').innerHTML = '<span class="animate__animated animate__pulse animate__infinite text-success">تم التصويت! بانتظار النتيجة...</span>';
+                    document.getElementById('status-text').innerHTML = '<span class="animate__animated animate__pulse animate__infinite text-success font-bold text-sm">تم التصويت! بانتظار النتيجة...</span>';
                     socket.emit('submitVote', { vote: o }); 
                 };
             }
@@ -517,7 +521,10 @@
     socket.on('playerActed', d => {
         if(d.id !== socket.id && !document.getElementById('status-text').innerHTML.includes(d.id)) {
              let act = d.action === 'bluffed' ? "✍️" : "🗳️";
-             document.getElementById('status-text').innerHTML += `<span id="${d.id}" class="inline-block bg-white/10 px-2 py-0.5 rounded text-[10px] m-0.5">${allPlayers[d.id].name} ${act}</span>`;
+             // نخفي رسالة "بانتظار البقية" ونحط اسماء اللي جاوبوا
+             let sTxt = document.getElementById('status-text');
+             if(sTxt.innerHTML.includes("بانتظار")) sTxt.innerHTML = '';
+             sTxt.innerHTML += `<span id="${d.id}" class="inline-block bg-white/10 px-2 py-0.5 rounded text-[10px] m-0.5">${allPlayers[d.id].name} ${act}</span>`;
         }
     });
 
@@ -532,7 +539,6 @@
         document.getElementById('bluff-area').classList.add('hidden');
         document.getElementById('status-text').innerHTML = '';
         
-        // --- التعديل الثالث: شكل الإجابة الصحيحة تحت السؤال ---
         document.getElementById('q-content').innerHTML = `
             <h1 class="text-xl font-heading text-white/90 leading-relaxed px-2 mb-3">${currentQuestionText}</h1>
             <div class="text-success font-bold text-xl mb-6">✅ الجواب: ${d.correctAns}</div>
@@ -553,7 +559,6 @@
             </div>`;
         }
 
-        // إزالة المربع الأخضر القديم والاكتفاء بعرض نتائج اللاعبين
         document.getElementById('result-detail').innerHTML = `<div class="mb-2 w-full">${resHtml}</div>`;
 
         if(myRes.pointsGained > 0) playSnd('correct'); else playSnd('wrong');
@@ -572,7 +577,7 @@
             document.getElementById('timer-bar').style.width = timeLeft + '%'; 
             if(timeLeft <= 0) {
                 clearInterval(timerInt); 
-                document.getElementById('status-text').innerHTML = '<span class="text-destructive font-bold">انتهى الوقت! ⏳</span>';
+                document.getElementById('status-text').innerHTML = '<span class="text-destructive font-bold text-sm">انتهى الوقت! ⏳</span>';
                 if (isLeader) {
                     if (phase === 'bluff') socket.emit('timeoutBluffAll');
                     else if (phase === 'vote') socket.emit('timeoutVoteAll');
@@ -641,15 +646,6 @@
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
 
 
 
