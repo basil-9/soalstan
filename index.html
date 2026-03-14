@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إقليم | سؤالستان 🚀</title>
+    <title>سؤالستان | لعبة الأسئلة والخدع 🚀</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -28,8 +28,9 @@
                         mutedForeground: "hsl(0, 0%, 60%)"
                     },
                     fontFamily: {
-                        heading: ['"Cairo Play"', 'sans-serif'],
-                        body: ['"IBM Plex Sans Arabic"', 'sans-serif']
+                        // ضفنا خطوط النظام الإجبارية لمنع تقطيع الحروف
+                        heading: ['"Cairo Play"', 'system-ui', '-apple-system', 'sans-serif'],
+                        body: ['"IBM Plex Sans Arabic"', 'system-ui', '-apple-system', 'sans-serif']
                     }
                 }
             }
@@ -37,8 +38,8 @@
     </script>
 
     <style>
-        body { font-family: 'IBM Plex Sans Arabic', sans-serif; background-color: hsl(0, 0%, 7%); color: hsl(0, 0%, 92%); overflow-x: hidden; }
-        h1, h2, h3, h4 { font-family: 'Cairo Play', sans-serif; }
+        body { font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif; background-color: hsl(0, 0%, 7%); color: hsl(0, 0%, 92%); overflow-x: hidden; }
+        h1, h2, h3, h4 { font-family: 'Cairo Play', system-ui, sans-serif; }
         
         .shimmer-text { background: linear-gradient(90deg, hsl(0, 0%, 92%) 0%, hsl(27, 38%, 55%) 50%, hsl(0, 0%, 92%) 100%); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: shimmer 3s linear infinite; }
         @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
@@ -217,7 +218,6 @@
     };
     function playSnd(s) { sounds[s].play().catch(()=>{}); }
 
-    // استرجاع البيانات المحفوظة تلقائياً عند فتح الصفحة
     window.onload = () => {
         if(localStorage.getItem('saved_name')) document.getElementById('player-name').value = localStorage.getItem('saved_name');
         if(localStorage.getItem('saved_room')) document.getElementById('room-id').value = localStorage.getItem('saved_room');
@@ -394,7 +394,6 @@
 
         if(!n || !r) return alert("اكتب الاسم وكود الغرفة!");
         
-        // حفظ البيانات في المتصفح عشان لو طلع ورجع يلقاها
         localStorage.setItem('saved_name', n);
         localStorage.setItem('saved_room', r);
 
@@ -409,7 +408,6 @@
         socket.emit('joinRoom', { roomID: r, name: n, avatar: selectedAvatarUrl, settings: { roundTime: mt, maxRounds: mr, categories: selectedCategories } });
     }
 
-    // تعديل زر الخروج ليطلب تأكيد، واذا رجع يلقى بياناته
     function exitGame() { 
         playSnd('click'); 
         if(confirm("متأكد تبي تطلع من الغرفة؟ \n(لا تخاف بياناتك محفوظة وتقدر ترجع بسرعة بنفس الكود)")) {
@@ -469,9 +467,10 @@
         
         let qType = d.fullQuestion.category || d.fullQuestion.hint || 'سؤال عام';
         
+        // تم إضافة ستايلات لمنع تفكك الحروف واستخدام خط النظام الموثوق font-body
         document.getElementById('q-content').innerHTML = `
             <div class="bg-primary/20 text-primary px-3 py-1 rounded-lg text-xs font-bold inline-block mx-auto mb-4 border border-primary/30">📌 ${qType}</div>
-            <h1 class="text-2xl font-heading text-white leading-relaxed px-2">${d.fullQuestion.q}</h1>
+            <h1 class="text-2xl font-body font-bold text-white leading-relaxed px-2" style="direction: rtl; unicode-bidi: isolate;">${d.fullQuestion.q}</h1>
         `;
         
         document.getElementById('bluff-area').classList.remove('hidden');
@@ -514,7 +513,9 @@
         
         d.options.forEach(o => {
             const b = document.createElement('button'); 
-            b.className = 'py-3 px-4 rounded-xl border border-border bg-secondary text-white font-bold hover:border-gold hover:text-gold transition text-sm';
+            b.className = 'py-3 px-4 rounded-xl border border-border bg-secondary text-white font-bold hover:border-gold hover:text-gold transition text-sm font-body';
+            b.style.direction = "rtl";
+            b.style.unicodeBidi = "isolate";
             b.innerText = o;
             
             if (o === myBluffText) {
@@ -522,7 +523,7 @@
             } else {
                 b.onclick = () => { 
                     playSnd('click'); 
-                    b.className = 'py-3 px-4 rounded-xl border-2 border-primary bg-primary/20 text-white font-bold transition text-sm';
+                    b.className = 'py-3 px-4 rounded-xl border-2 border-primary bg-primary/20 text-white font-bold transition text-sm font-body';
                     document.querySelectorAll('#options button').forEach(btn => btn.disabled = true);
                     document.getElementById('status-text').innerHTML = '<span class="animate__animated animate__pulse animate__infinite text-success font-bold text-sm">تم التصويت! بانتظار النتيجة...</span>';
                     socket.emit('submitVote', { vote: o }); 
@@ -555,8 +556,8 @@
         document.getElementById('status-text').innerHTML = '';
         
         document.getElementById('q-content').innerHTML = `
-            <h1 class="text-xl font-heading text-white/90 leading-relaxed px-2 mb-3">${currentQuestionText}</h1>
-            <div class="text-success font-bold text-xl mb-6">✅ الجواب: ${d.correctAns}</div>
+            <h1 class="text-xl font-body font-bold text-white/90 leading-relaxed px-2 mb-3" style="direction: rtl; unicode-bidi: isolate;">${currentQuestionText}</h1>
+            <div class="text-success font-bold text-xl mb-6 font-body" style="direction: rtl; unicode-bidi: isolate;">✅ الجواب: ${d.correctAns}</div>
             <div class="animate__animated animate__pulse animate__infinite text-gold text-sm">جاري تحضير الجولة... ⏳</div>
         `;
         
@@ -568,11 +569,10 @@
             let pts = p.pointsGained > 0 ? `<span class="text-success font-bold">(+${p.pointsGained})</span>` : `<span class="text-mutedForeground">(0)</span>`;
             let trick = p.tricked.length > 0 ? `<div class="text-destructive text-[11px] mt-1">خدع: ${p.tricked.join('، ')} 🦊</div>` : "";
             
-            let vote = `<div class="text-[11px] text-mutedForeground mt-1">اختار: <span class="text-white">${p.votedFor||"لم يصوت"}</span></div>`;
+            let vote = `<div class="text-[11px] text-mutedForeground mt-1 font-body" style="direction:rtl; unicode-bidi:isolate;">اختار: <span class="text-white">${p.votedFor||"لم يصوت"}</span></div>`;
             
-            // التعديل: إظهار الجواب الصح للي يجاوبون غلط فقط
             if(p.pointsGained === 0) {
-                vote += `<div class="text-[11px] text-success mt-1 font-bold">الجواب الصح: ${d.correctAns} ✅</div>`;
+                vote += `<div class="text-[11px] text-success mt-1 font-bold font-body" style="direction:rtl; unicode-bidi:isolate;">الجواب الصح: ${d.correctAns} ✅</div>`;
             }
 
             resHtml += `<div class="bg-secondary/50 border border-border p-3 rounded-xl mb-2 text-sm text-right">
@@ -667,9 +667,5 @@
 </script>
 </body>
 </html>
-
-
-
-
 
 
